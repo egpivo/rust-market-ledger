@@ -11,6 +11,8 @@ use std::error::Error;
 use std::sync::Arc;
 use std::time::Duration;
 use std::env;
+use std::thread;
+use actix_rt;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct MarketData {
@@ -214,15 +216,76 @@ mod tests {
     }
 }
 
-async fn fetch_bitcoin_price() -> Result<MarketData, Box<dyn Error>> {
-    let url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
-    let resp = reqwest::get(url).await?.json::<CoinGeckoResponse>().await?;
+async fn fetch_bitcoin_price_offline() -> Result<MarketData, Box<dyn Error>> {
+    let timestamp = Utc::now().timestamp();
+    let base_price = 50000.0;
+    let variation = (timestamp % 1000) as f32 / 10.0;
     Ok(MarketData {
         asset: "BTC".to_string(),
-        price: resp.bitcoin.usd,
-        source: "CoinGecko".to_string(),
-        timestamp: Utc::now().timestamp(),
+        price: base_price + variation,
+        source: "MockData".to_string(),
+        timestamp,
     })
+}
+
+async fn fetch_bitcoin_price() -> Result<MarketData, Box<dyn Error>> {
+    let url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
+    let max_retries = 3;
+    let mut last_error = None;
+    
+    let client = reqwest::Client::builder()
+        .user_agent("rust-market-ledger/0.1.0")
+        .timeout(Duration::from_secs(10))
+        .build()?;
+    
+    for attempt in 1..=max_retries {
+        match client.get(url).send().await {
+            Ok(response) => {
+                let status = response.status();
+                if !status.is_success() {
+                    last_error = Some(format!("HTTP status: {}", status));
+                    if status == 429 || status == 403 {
+                        let delay_ms = 1000 * attempt as u64;
+                        if attempt < max_retries {
+                            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+                            continue;
+                        }
+                    } else if attempt < max_retries {
+                        tokio::time::sleep(Duration::from_millis(500 * attempt as u64)).await;
+                        continue;
+                    }
+                    return Err(format!("API returned status: {}", status).into());
+                }
+                
+                match response.json::<CoinGeckoResponse>().await {
+                    Ok(resp) => {
+                        return Ok(MarketData {
+                            asset: "BTC".to_string(),
+                            price: resp.bitcoin.usd,
+                            source: "CoinGecko".to_string(),
+                            timestamp: Utc::now().timestamp(),
+                        });
+                    }
+                    Err(e) => {
+                        last_error = Some(format!("JSON decode error: {}", e));
+                        if attempt < max_retries {
+                            tokio::time::sleep(Duration::from_millis(500 * attempt as u64)).await;
+                            continue;
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                last_error = Some(format!("Request error: {}", e));
+                if attempt < max_retries {
+                    tokio::time::sleep(Duration::from_millis(500 * attempt as u64)).await;
+                    continue;
+                }
+            }
+        }
+    }
+    
+    Err(format!("Failed after {} attempts. Last error: {}", max_retries, last_error.unwrap_or_default()).into())
 }
 
 async fn run_pbft_consensus(
@@ -272,6 +335,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
     let node_id: usize = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
     let port: u16 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(8000 + node_id as u16);
+    let use_offline = args.contains(&"--offline".to_string()) || args.contains(&"-o".to_string());
     
     let node_addresses = vec![
         "127.0.0.1:8000".to_string(),
@@ -302,10 +366,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     
     let server_port = port;
     let handler_for_server = network_handler.clone();
-    tokio::spawn(async move {
-        if let Err(e) = start_server(server_port, handler_for_server).await {
-            eprintln!("[Error] Server error: {}", e);
-        }
+    
+    thread::spawn(move || {
+        actix_rt::System::new().block_on(async {
+            let _ = start_server(server_port, handler_for_server).await;
+        });
     });
     
     tokio::time::sleep(Duration::from_millis(500)).await;
@@ -317,7 +382,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("\n{}", "=".repeat(60));
         println!("Round {}: Starting ETL + PBFT Consensus", round + 1);
         
-        match fetch_bitcoin_price().await {
+        let price_result = if use_offline {
+            fetch_bitcoin_price_offline().await
+        } else {
+            fetch_bitcoin_price().await
+        };
+        
+        match price_result {
             Ok(market_data) => {
                 println!("[Extract] Price: ${}", market_data.price);
                 

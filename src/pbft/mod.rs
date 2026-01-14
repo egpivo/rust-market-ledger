@@ -72,41 +72,57 @@ impl PBFTManager {
     }
 
     pub fn handle_pre_prepare(&self, msg: &PBFTMessage) -> bool {
-        let mut state = self.state.write();
         let key = (msg.view, msg.sequence);
+        let total_nodes = self.total_nodes;
         
-        let votes = state.pre_prepares.entry(key).or_insert_with(Vec::new);
-        if !votes.contains(&msg.node_id) {
-            votes.push(msg.node_id);
+        {
+            let mut state = self.state.write();
+            let votes = state.pre_prepares.entry(key).or_insert_with(Vec::new);
+            if !votes.contains(&msg.node_id) {
+                votes.push(msg.node_id);
+            }
         }
         
-        state.has_quorum(votes, self.total_nodes)
+        let state = self.state.read();
+        let votes = state.pre_prepares.get(&key).unwrap();
+        state.has_quorum(votes, total_nodes)
     }
 
     pub fn handle_prepare(&self, msg: &PBFTMessage) -> bool {
-        let mut state = self.state.write();
         let key = (msg.view, msg.sequence);
+        let total_nodes = self.total_nodes;
         
-        let votes = state.prepares.entry(key).or_insert_with(Vec::new);
-        if !votes.contains(&msg.node_id) {
-            votes.push(msg.node_id);
+        {
+            let mut state = self.state.write();
+            let votes = state.prepares.entry(key).or_insert_with(Vec::new);
+            if !votes.contains(&msg.node_id) {
+                votes.push(msg.node_id);
+            }
         }
         
-        state.has_quorum(votes, self.total_nodes)
+        let state = self.state.read();
+        let votes = state.prepares.get(&key).unwrap();
+        state.has_quorum(votes, total_nodes)
     }
 
     pub fn handle_commit(&self, msg: &PBFTMessage) -> bool {
-        let mut state = self.state.write();
         let key = (msg.view, msg.sequence);
+        let total_nodes = self.total_nodes;
+        let sequence = msg.sequence;
         
-        let votes = state.commits.entry(key).or_insert_with(Vec::new);
-        if !votes.contains(&msg.node_id) {
-            votes.push(msg.node_id);
+        {
+            let mut state = self.state.write();
+            let votes = state.commits.entry(key).or_insert_with(Vec::new);
+            if !votes.contains(&msg.node_id) {
+                votes.push(msg.node_id);
+            }
         }
         
-        let has_quorum = state.has_quorum(votes, self.total_nodes);
-        if has_quorum && !state.committed_blocks.contains(&msg.sequence) {
-            state.committed_blocks.push(msg.sequence);
+        let mut state = self.state.write();
+        let votes = state.commits.get(&key).unwrap();
+        let has_quorum = state.has_quorum(votes, total_nodes);
+        if has_quorum && !state.committed_blocks.contains(&sequence) {
+            state.committed_blocks.push(sequence);
         }
         has_quorum
     }
