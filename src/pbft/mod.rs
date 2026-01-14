@@ -4,7 +4,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use parking_lot::RwLock;
 
-/// PBFT 訊息類型
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub enum MessageType {
     PrePrepare,
@@ -12,28 +11,26 @@ pub enum MessageType {
     Commit,
 }
 
-/// PBFT 訊息
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PBFTMessage {
     pub msg_type: MessageType,
-    pub view: u64,           // 當前視圖編號
-    pub sequence: u64,       // 序列號（區塊索引）
-    pub block_hash: String,  // 區塊哈希
-    pub block_data_json: Option<String>, // 只在 PrePrepare 時包含（序列化的區塊數據）
-    pub node_id: usize,      // 發送節點 ID
+    pub view: u64,
+    pub sequence: u64,
+    pub block_hash: String,
+    pub block_data_json: Option<String>,
+    pub node_id: usize,
     pub timestamp: i64,
 }
 
-/// PBFT 節點狀態
 #[derive(Debug, Clone)]
 pub struct NodeState {
     pub node_id: usize,
     pub view: u64,
     pub sequence: u64,
-    pub pre_prepares: HashMap<(u64, u64), Vec<usize>>, // (view, sequence) -> node_ids
+    pub pre_prepares: HashMap<(u64, u64), Vec<usize>>,
     pub prepares: HashMap<(u64, u64), Vec<usize>>,
     pub commits: HashMap<(u64, u64), Vec<usize>>,
-    pub committed_blocks: Vec<u64>, // 已提交的區塊索引
+    pub committed_blocks: Vec<u64>,
 }
 
 impl NodeState {
@@ -49,23 +46,20 @@ impl NodeState {
         }
     }
 
-    /// 計算法定人數 (2f + 1，其中 f 是容錯節點數)
     pub fn quorum_size(&self, total_nodes: usize) -> usize {
-        let f = (total_nodes - 1) / 3; // 最多容忍 f 個拜占庭節點
+        let f = (total_nodes - 1) / 3;
         (2 * f) + 1
     }
 
-    /// 檢查是否達到法定人數
     pub fn has_quorum(&self, votes: &[usize], total_nodes: usize) -> bool {
         votes.len() >= self.quorum_size(total_nodes)
     }
 }
 
-/// PBFT 共識管理器
 pub struct PBFTManager {
     pub state: Arc<RwLock<NodeState>>,
     pub total_nodes: usize,
-    pub node_addresses: Vec<String>, // 所有節點的地址列表
+    pub node_addresses: Vec<String>,
 }
 
 impl PBFTManager {
@@ -77,7 +71,6 @@ impl PBFTManager {
         }
     }
 
-    /// 處理 PrePrepare 訊息
     pub fn handle_pre_prepare(&self, msg: &PBFTMessage) -> bool {
         let mut state = self.state.write();
         let key = (msg.view, msg.sequence);
@@ -90,7 +83,6 @@ impl PBFTManager {
         state.has_quorum(votes, self.total_nodes)
     }
 
-    /// 處理 Prepare 訊息
     pub fn handle_prepare(&self, msg: &PBFTMessage) -> bool {
         let mut state = self.state.write();
         let key = (msg.view, msg.sequence);
@@ -103,7 +95,6 @@ impl PBFTManager {
         state.has_quorum(votes, self.total_nodes)
     }
 
-    /// 處理 Commit 訊息
     pub fn handle_commit(&self, msg: &PBFTMessage) -> bool {
         let mut state = self.state.write();
         let key = (msg.view, msg.sequence);
@@ -120,20 +111,15 @@ impl PBFTManager {
         has_quorum
     }
 
-    /// 檢查區塊是否已提交
     pub fn is_committed(&self, sequence: u64) -> bool {
         let state = self.state.read();
         state.committed_blocks.contains(&sequence)
     }
 
-    /// 獲取當前節點 ID
     pub fn node_id(&self) -> usize {
         self.state.read().node_id
     }
 
-    /// 創建 PrePrepare 訊息（主節點發起）
-    /// block_hash: 區塊哈希
-    /// block_data_json: 序列化的區塊數據（JSON 字串）
     pub fn create_pre_prepare(&self, block_hash: &str, block_data_json: &str, sequence: u64) -> PBFTMessage {
         let state = self.state.read();
         PBFTMessage {
@@ -147,7 +133,6 @@ impl PBFTManager {
         }
     }
 
-    /// 創建 Prepare 訊息
     pub fn create_prepare(&self, block_hash: &str, sequence: u64) -> PBFTMessage {
         let state = self.state.read();
         PBFTMessage {
@@ -155,13 +140,12 @@ impl PBFTManager {
             view: state.view,
             sequence,
             block_hash: block_hash.to_string(),
-            block_data: None,
+            block_data_json: None,
             node_id: state.node_id,
             timestamp: Utc::now().timestamp(),
         }
     }
 
-    /// 創建 Commit 訊息
     pub fn create_commit(&self, block_hash: &str, sequence: u64) -> PBFTMessage {
         let state = self.state.read();
         PBFTMessage {
@@ -169,14 +153,138 @@ impl PBFTManager {
             view: state.view,
             sequence,
             block_hash: block_hash.to_string(),
-            block_data: None,
+            block_data_json: None,
             node_id: state.node_id,
             timestamp: Utc::now().timestamp(),
         }
     }
 
-    /// 判斷是否為主節點（簡化版：輪流擔任）
     pub fn is_primary(&self, sequence: u64) -> bool {
         (sequence % self.total_nodes as u64) as usize == self.node_id()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_quorum_size_calculation() {
+        let state = NodeState::new(0);
+        
+        assert_eq!(state.quorum_size(4), 3);
+        assert_eq!(state.quorum_size(7), 5);
+        assert_eq!(state.quorum_size(10), 7);
+    }
+
+    #[test]
+    fn test_has_quorum() {
+        let state = NodeState::new(0);
+        
+        assert!(state.has_quorum(&[0, 1, 2], 4));
+        assert!(!state.has_quorum(&[0, 1], 4));
+        assert!(state.has_quorum(&[0, 1, 2, 3], 4));
+    }
+
+    #[test]
+    fn test_pbft_manager_creation() {
+        let addresses = vec![
+            "127.0.0.1:8000".to_string(),
+            "127.0.0.1:8001".to_string(),
+        ];
+        let manager = PBFTManager::new(0, 2, addresses);
+        
+        assert_eq!(manager.node_id(), 0);
+        assert_eq!(manager.total_nodes, 2);
+    }
+
+    #[test]
+    fn test_is_primary() {
+        let addresses = vec![
+            "127.0.0.1:8000".to_string(),
+            "127.0.0.1:8001".to_string(),
+            "127.0.0.1:8002".to_string(),
+        ];
+        
+        let manager0 = PBFTManager::new(0, 3, addresses.clone());
+        let manager1 = PBFTManager::new(1, 3, addresses.clone());
+        let manager2 = PBFTManager::new(2, 3, addresses);
+        
+        assert!(manager0.is_primary(0));
+        assert!(manager1.is_primary(1));
+        assert!(manager2.is_primary(2));
+        assert!(manager0.is_primary(3));
+    }
+
+    #[test]
+    fn test_message_handling() {
+        let addresses = vec![
+            "127.0.0.1:8000".to_string(),
+            "127.0.0.1:8001".to_string(),
+            "127.0.0.1:8002".to_string(),
+            "127.0.0.1:8003".to_string(),
+        ];
+        let manager = PBFTManager::new(0, 4, addresses);
+        
+        let msg = PBFTMessage {
+            msg_type: MessageType::Prepare,
+            view: 0,
+            sequence: 1,
+            block_hash: "test_hash".to_string(),
+            block_data_json: None,
+            node_id: 1,
+            timestamp: 1234567890,
+        };
+        
+        let result = manager.handle_prepare(&msg);
+        assert!(!result);
+    }
+
+    #[test]
+    fn test_quorum_reached() {
+        let addresses = vec![
+            "127.0.0.1:8000".to_string(),
+            "127.0.0.1:8001".to_string(),
+            "127.0.0.1:8002".to_string(),
+            "127.0.0.1:8003".to_string(),
+        ];
+        let manager = PBFTManager::new(0, 4, addresses);
+        
+        let msg1 = PBFTMessage {
+            msg_type: MessageType::Commit,
+            view: 0,
+            sequence: 1,
+            block_hash: "test_hash".to_string(),
+            block_data_json: None,
+            node_id: 0,
+            timestamp: 1234567890,
+        };
+        
+        let msg2 = PBFTMessage {
+            msg_type: MessageType::Commit,
+            view: 0,
+            sequence: 1,
+            block_hash: "test_hash".to_string(),
+            block_data_json: None,
+            node_id: 1,
+            timestamp: 1234567890,
+        };
+        
+        let msg3 = PBFTMessage {
+            msg_type: MessageType::Commit,
+            view: 0,
+            sequence: 1,
+            block_hash: "test_hash".to_string(),
+            block_data_json: None,
+            node_id: 2,
+            timestamp: 1234567890,
+        };
+        
+        manager.handle_commit(&msg1);
+        manager.handle_commit(&msg2);
+        let result = manager.handle_commit(&msg3);
+        
+        assert!(result);
+        assert!(manager.is_committed(1));
     }
 }

@@ -3,7 +3,6 @@ use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use serde_json::json;
 use std::sync::Arc;
 
-/// 網路訊息處理器
 pub struct NetworkHandler {
     pub on_message: Arc<dyn Fn(PBFTMessage) -> bool + Send + Sync>,
 }
@@ -19,7 +18,6 @@ impl NetworkHandler {
     }
 }
 
-/// HTTP API 端點：接收 PBFT 訊息
 async fn receive_message(
     msg: web::Json<PBFTMessage>,
     handler: web::Data<Arc<NetworkHandler>>,
@@ -31,19 +29,17 @@ async fn receive_message(
     }))
 }
 
-/// 健康檢查端點
 async fn health() -> impl Responder {
     HttpResponse::Ok().json(json!({"status": "healthy"}))
 }
 
-/// 啟動 HTTP 伺服器
 pub async fn start_server(
     port: u16,
     handler: Arc<NetworkHandler>,
 ) -> std::io::Result<()> {
     let handler_data = web::Data::new(handler);
     
-    println!("🌐 [Network] Starting HTTP server on port {}", port);
+    println!("[Network] Starting HTTP server on port {}", port);
     
     HttpServer::new(move || {
         App::new()
@@ -56,7 +52,6 @@ pub async fn start_server(
     .await
 }
 
-/// 發送訊息到其他節點
 pub async fn send_message(url: &str, message: &PBFTMessage) -> Result<(), Box<dyn std::error::Error>> {
     let client = reqwest::Client::new();
     let response = client
@@ -72,14 +67,12 @@ pub async fn send_message(url: &str, message: &PBFTMessage) -> Result<(), Box<dy
     }
 }
 
-/// 廣播訊息到所有節點
 pub async fn broadcast_message(
     message: &PBFTMessage,
     node_addresses: &[String],
     current_node_port: u16,
 ) {
     for addr in node_addresses {
-        // 跳過自己
         if let Some(port_str) = addr.split(':').last() {
             if let Ok(port) = port_str.parse::<u16>() {
                 if port == current_node_port {
@@ -89,7 +82,7 @@ pub async fn broadcast_message(
         }
         
         if let Err(e) = send_message(addr, message).await {
-            eprintln!("⚠️  [Network] Failed to send to {}: {}", addr, e);
+            eprintln!("[Warning] [Network] Failed to send to {}: {}", addr, e);
         }
     }
 }
