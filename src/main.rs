@@ -1,6 +1,7 @@
 mod pbft;
 mod network;
 mod etl;
+mod consensus;
 
 use chrono::prelude::*;
 use pbft::{MessageType, PBFTManager, PBFTMessage};
