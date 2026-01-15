@@ -1,133 +1,20 @@
 mod pbft;
 mod network;
+mod etl;
 
 use chrono::prelude::*;
 use pbft::{MessageType, PBFTManager, PBFTMessage};
 use network::{broadcast_message, NetworkHandler, start_server};
-use rusqlite::{params, Connection, Result as SqlResult};
-use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+use etl::{Block, MarketData};
+use etl::load::DatabaseManager;
+use etl::extract::Extractor;
+use etl::transform::Transformer;
 use std::error::Error;
 use std::sync::Arc;
 use std::time::Duration;
 use std::env;
 use std::thread;
 use actix_rt;
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct MarketData {
-    asset: String,
-    price: f32,
-    source: String,
-    timestamp: i64,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Block {
-    pub index: u64,
-    pub timestamp: i64,
-    pub data: Vec<MarketData>,
-    pub previous_hash: String,
-    pub hash: String,
-    pub nonce: u64,
-}
-
-impl Block {
-    pub fn calculate_hash(&self) -> String {
-        let data_str = serde_json::to_string(&self.data).unwrap_or_default();
-        let input = format!("{}{}{}{}{}", 
-            self.index, self.timestamp, data_str, self.previous_hash, self.nonce);
-        let mut hasher = Sha256::new();
-        hasher.update(input);
-        format!("{:x}", hasher.finalize())
-    }
-    
-    pub fn calculate_hash_with_nonce(&mut self) {
-        self.hash = self.calculate_hash();
-    }
-}
-
-#[derive(Deserialize, Debug)]
-struct CoinGeckoResponse {
-    bitcoin: PriceDetail,
-}
-
-#[derive(Deserialize, Debug)]
-struct PriceDetail {
-    usd: f32,
-}
-
-struct DatabaseManager {
-    conn_str: String,
-}
-
-impl DatabaseManager {
-    fn new(path: &str) -> Self {
-        DatabaseManager { conn_str: path.to_string() }
-    }
-
-    fn init(&self) -> SqlResult<()> {
-        let conn = Connection::open(&self.conn_str)?;
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS blockchain (
-                id            INTEGER PRIMARY KEY,
-                block_index   INTEGER NOT NULL,
-                timestamp     INTEGER NOT NULL,
-                data_json     TEXT NOT NULL,
-                prev_hash     TEXT NOT NULL,
-                hash          TEXT NOT NULL,
-                nonce         INTEGER NOT NULL
-            )",
-            [],
-        )?;
-        Ok(())
-    }
-
-    fn save_block(&self, block: &Block) -> SqlResult<()> {
-        let conn = Connection::open(&self.conn_str)?;
-        let data_json = serde_json::to_string(&block.data).unwrap();
-        
-        conn.execute(
-            "INSERT INTO blockchain (block_index, timestamp, data_json, prev_hash, hash, nonce)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            params![
-                block.index, 
-                block.timestamp, 
-                data_json, 
-                block.previous_hash, 
-                block.hash, 
-                block.nonce
-            ],
-        )?;
-        println!("[Database] Block #{} saved to SQLite.", block.index);
-        Ok(())
-    }
-
-    fn query_latest_blocks(&self, limit: u64) -> SqlResult<()> {
-        let conn = Connection::open(&self.conn_str)?;
-        let mut stmt = conn.prepare("SELECT block_index, hash, data_json FROM blockchain ORDER BY block_index DESC LIMIT ?")?;
-        
-        let rows = stmt.query_map([limit], |row| {
-            let idx: u64 = row.get(0)?;
-            let hash: String = row.get(1)?;
-            let data: String = row.get(2)?;
-            Ok((idx, hash, data))
-        })?;
-
-        println!("\n[Audit] Verifying latest blocks in DB:");
-        for row in rows {
-            let (idx, hash, data) = row?;
-            println!("   Block #{} | Hash: {}... | Data: {:.50}...", idx, &hash[0..8.min(hash.len())], data);
-        }
-        Ok(())
-    }
-
-    pub fn get_block_count(&self) -> SqlResult<u64> {
-        let conn = Connection::open(&self.conn_str)?;
-        let count: u64 = conn.query_row("SELECT COUNT(*) FROM blockchain", [], |row| row.get(0))?;
-        Ok(count)
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -178,7 +65,7 @@ mod tests {
     #[test]
     fn test_database_manager_init() {
         let test_db = "test_blockchain.db";
-        let db = DatabaseManager::new(test_db);
+        let db = DatabaseManager::new(test_db).unwrap();
         assert!(db.init().is_ok());
         
         let count = db.get_block_count().unwrap();
@@ -190,7 +77,7 @@ mod tests {
     #[test]
     fn test_database_save_and_retrieve_block() {
         let test_db = "test_blockchain_save.db";
-        let db = DatabaseManager::new(test_db);
+        let db = DatabaseManager::new(test_db).unwrap();
         db.init().unwrap();
         
         let block = Block {
@@ -212,81 +99,82 @@ mod tests {
         let count = db.get_block_count().unwrap();
         assert_eq!(count, 1);
         
+        // Test retrieval
+        let retrieved = db.get_block_by_index(1).unwrap();
+        assert_eq!(retrieved.index, 1);
+        assert_eq!(retrieved.hash, "abc123");
+        
+        // Test get by hash
+        let retrieved_by_hash = db.get_block_by_hash("abc123").unwrap();
+        assert_eq!(retrieved_by_hash.index, 1);
+        
+        // Test latest block
+        let latest = db.get_latest_block().unwrap();
+        assert!(latest.is_some());
+        assert_eq!(latest.unwrap().index, 1);
+        
+        fs::remove_file(test_db).ok();
+    }
+    
+    #[test]
+    fn test_database_batch_operations() {
+        let test_db = "test_blockchain_batch.db";
+        // Clean up any existing test database
+        fs::remove_file(test_db).ok();
+        
+        let db = DatabaseManager::new(test_db).unwrap();
+        db.init().unwrap();
+        
+        let mut block1 = Block {
+            index: 1,
+            timestamp: 1234567890,
+            data: vec![MarketData {
+                asset: "BTC".to_string(),
+                price: 50000.0,
+                source: "Test".to_string(),
+                timestamp: 1234567890,
+            }],
+            previous_hash: "0000_genesis".to_string(),
+            hash: String::new(),
+            nonce: 0,
+        };
+        block1.calculate_hash_with_nonce();
+        
+        let mut block2 = Block {
+            index: 2,
+            timestamp: 1234567891,
+            data: vec![MarketData {
+                asset: "BTC".to_string(),
+                price: 50100.0,
+                source: "Test".to_string(),
+                timestamp: 1234567891,
+            }],
+            previous_hash: block1.hash.clone(),
+            hash: String::new(),
+            nonce: 0,
+        };
+        block2.calculate_hash_with_nonce();
+        
+        let blocks = vec![block1, block2];
+        
+        let saved = db.save_blocks(&blocks).unwrap();
+        assert_eq!(saved, 2);
+        
+        let count = db.get_block_count().unwrap();
+        assert_eq!(count, 2);
+        
+        // Test range query
+        let range_blocks = db.get_blocks_range(1, 2).unwrap();
+        assert_eq!(range_blocks.len(), 2);
+        
+        // Test chain verification
+        let is_valid = db.verify_chain().unwrap();
+        assert!(is_valid);
+        
         fs::remove_file(test_db).ok();
     }
 }
 
-async fn fetch_bitcoin_price_offline() -> Result<MarketData, Box<dyn Error>> {
-    let timestamp = Utc::now().timestamp();
-    let base_price = 50000.0;
-    let variation = (timestamp % 1000) as f32 / 10.0;
-    Ok(MarketData {
-        asset: "BTC".to_string(),
-        price: base_price + variation,
-        source: "MockData".to_string(),
-        timestamp,
-    })
-}
-
-async fn fetch_bitcoin_price() -> Result<MarketData, Box<dyn Error>> {
-    let url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
-    let max_retries = 3;
-    let mut last_error = None;
-    
-    let client = reqwest::Client::builder()
-        .user_agent("rust-market-ledger/0.1.0")
-        .timeout(Duration::from_secs(10))
-        .build()?;
-    
-    for attempt in 1..=max_retries {
-        match client.get(url).send().await {
-            Ok(response) => {
-                let status = response.status();
-                if !status.is_success() {
-                    last_error = Some(format!("HTTP status: {}", status));
-                    if status == 429 || status == 403 {
-                        let delay_ms = 1000 * attempt as u64;
-                        if attempt < max_retries {
-                            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
-                            continue;
-                        }
-                    } else if attempt < max_retries {
-                        tokio::time::sleep(Duration::from_millis(500 * attempt as u64)).await;
-                        continue;
-                    }
-                    return Err(format!("API returned status: {}", status).into());
-                }
-                
-                match response.json::<CoinGeckoResponse>().await {
-                    Ok(resp) => {
-                        return Ok(MarketData {
-                            asset: "BTC".to_string(),
-                            price: resp.bitcoin.usd,
-                            source: "CoinGecko".to_string(),
-                            timestamp: Utc::now().timestamp(),
-                        });
-                    }
-                    Err(e) => {
-                        last_error = Some(format!("JSON decode error: {}", e));
-                        if attempt < max_retries {
-                            tokio::time::sleep(Duration::from_millis(500 * attempt as u64)).await;
-                            continue;
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                last_error = Some(format!("Request error: {}", e));
-                if attempt < max_retries {
-                    tokio::time::sleep(Duration::from_millis(500 * attempt as u64)).await;
-                    continue;
-                }
-            }
-        }
-    }
-    
-    Err(format!("Failed after {} attempts. Last error: {}", max_retries, last_error.unwrap_or_default()).into())
-}
 
 async fn run_pbft_consensus(
     block: Block,
@@ -349,7 +237,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("[Network] Total nodes: {}", total_nodes);
     
     let db_path = format!("blockchain_node_{}.db", node_id);
-    let db = DatabaseManager::new(&db_path);
+    let db = DatabaseManager::new(&db_path)?;
     db.init()?;
     
     let pbft = Arc::new(PBFTManager::new(node_id, total_nodes, node_addresses.clone()));
@@ -375,63 +263,128 @@ async fn main() -> Result<(), Box<dyn Error>> {
     
     tokio::time::sleep(Duration::from_millis(500)).await;
     
+    // Initialize ETL components
+    let extractor = Extractor::new()?;
+    let transformer = Transformer::new();
+    
+    // Get last block info for chain linking and deduplication
     let mut last_hash = String::from("0000_genesis_hash");
-    let mut last_index = 0;
+    let mut last_index = 0u64;
+    let mut last_timestamp: Option<i64> = None;
+    
+    // Try to load last block from database
+    if let Ok(Some(latest_block)) = db.get_latest_block() {
+        last_hash = latest_block.hash.clone();
+        last_index = latest_block.index;
+        last_timestamp = Some(latest_block.timestamp);
+        println!("[ETL] Loaded previous block: #{} (hash: {}...)", 
+                 last_index, 
+                 &last_hash[0..8.min(last_hash.len())]);
+    }
     
     for round in 0..3 {
         println!("\n{}", "=".repeat(60));
         println!("Round {}: Starting ETL + PBFT Consensus", round + 1);
         
-        let price_result = if use_offline {
-            fetch_bitcoin_price_offline().await
+        // Extract: Get market data from API or offline source
+        let extract_result = if use_offline {
+            extractor.extract_offline().await
         } else {
-            fetch_bitcoin_price().await
+            extractor.extract_from_api().await
         };
         
-        match price_result {
-            Ok(market_data) => {
-                println!("[Extract] Price: ${}", market_data.price);
+        match extract_result {
+            Ok(extract_data) => {
+                println!("[Extract] Price: ${:.2} | Source: {} | Timestamp: {}", 
+                         extract_data.price, extract_data.source, extract_data.timestamp);
                 
-                last_index += 1;
-                let mut new_block = Block {
-                    index: last_index,
-                    timestamp: Utc::now().timestamp(),
-                    data: vec![market_data],
-                    previous_hash: last_hash.clone(),
-                    hash: String::new(),
-                    nonce: 0,
-                };
-                new_block.calculate_hash_with_nonce();
+                // Transform: Validate and process the data
+                let transform_result = transformer.transform(
+                    extract_data.price,
+                    extract_data.timestamp,
+                    extract_data.source.clone(),
+                    last_timestamp,
+                );
                 
-                println!("[Transform] Block #{} created", new_block.index);
-                
-                match run_pbft_consensus(new_block.clone(), pbft.clone(), &node_addresses, port).await {
-                    Ok(Some(committed_block)) => {
-                        if let Err(e) = db.save_block(&committed_block) {
-                            eprintln!("[Error] Database Error: {}", e);
-                        } else {
-                            last_hash = committed_block.hash.clone();
-                            println!("[Load] Block #{} committed and saved!", committed_block.index);
+                match transform_result {
+                    Ok(transformed_data) => {
+                        if transformed_data.is_deduplicated {
+                            println!("[Transform] Warning: Data appears to be duplicate (within {}s window), skipping...", 
+                                     transformer.deduplication_window_seconds());
+                            continue;
+                        }
+                        
+                        // Normalize price if needed
+                        let normalized_price = transformer.normalize_price(transformed_data.price);
+                        
+                        println!("[Transform] Transformed: Asset={}, Price=${:.2}, Normalized=${:.2}", 
+                                 transformed_data.asset, transformed_data.price, normalized_price);
+                        
+                        // Create MarketData from transformed result
+                        let market_data = MarketData {
+                            asset: transformed_data.asset,
+                            price: normalized_price,
+                            source: transformed_data.source,
+                            timestamp: transformed_data.timestamp,
+                        };
+                        
+                        // Create block
+                        last_index += 1;
+                        let mut new_block = Block {
+                            index: last_index,
+                            timestamp: Utc::now().timestamp(),
+                            data: vec![market_data],
+                            previous_hash: last_hash.clone(),
+                            hash: String::new(),
+                            nonce: 0,
+                        };
+                        new_block.calculate_hash_with_nonce();
+                        
+                        println!("[Transform] Block #{} created (hash: {}...)", 
+                                 new_block.index, 
+                                 &new_block.hash[0..8.min(new_block.hash.len())]);
+                        
+                        // PBFT Consensus
+                        match run_pbft_consensus(new_block.clone(), pbft.clone(), &node_addresses, port).await {
+                            Ok(Some(committed_block)) => {
+                                // Load: Save to database
+                                match db.save_block(&committed_block) {
+                                    Ok(_) => {
+                                        last_hash = committed_block.hash.clone();
+                                        last_timestamp = Some(committed_block.timestamp);
+                                        println!("[Load] Block #{} committed and saved!", committed_block.index);
+                                    }
+                                    Err(e) => {
+                                        eprintln!("[Error] [Load] Database Error: {}", e);
+                                        last_index -= 1;
+                                    }
+                                }
+                            }
+                            Ok(None) => {
+                                eprintln!("[Warning] [PBFT] Consensus failed for block #{}", new_block.index);
+                                last_index -= 1;
+                            }
+                            Err(e) => {
+                                eprintln!("[Error] [PBFT] Error: {}", e);
+                                last_index -= 1;
+                            }
                         }
                     }
-                    Ok(None) => {
-                        eprintln!("[Warning] [PBFT] Consensus failed for block #{}", new_block.index);
-                        last_index -= 1;
-                    }
                     Err(e) => {
-                        eprintln!("[Error] [PBFT] Error: {}", e);
-                        last_index -= 1;
+                        eprintln!("[Error] [Transform] Validation/Transformation Error: {}", e);
                     }
                 }
             }
-            Err(e) => eprintln!("[Warning] [Extract] Fetch Error: {}", e),
+            Err(e) => {
+                eprintln!("[Error] [Extract] Fetch Error: {}", e);
+            }
         }
         
         tokio::time::sleep(Duration::from_secs(3)).await;
     }
     
     println!("\n{}", "=".repeat(60));
-    db.query_latest_blocks(5)?;
+    db.print_latest_blocks(5)?;
     
     println!("\n[Success] Node {} completed successfully!", node_id);
     
