@@ -1,5 +1,4 @@
 use chrono::prelude::*;
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone)]
 pub struct ValidationError {

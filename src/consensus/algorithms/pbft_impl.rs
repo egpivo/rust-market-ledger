@@ -186,9 +186,25 @@ impl PBFTManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    
+    // Initialize logger for tests (only once)
+    static INIT: std::sync::Once = std::sync::Once::new();
+    
+    fn init() {
+        INIT.call_once(|| {
+            let _ = tracing_subscriber::fmt()
+                .with_env_filter(
+                    tracing_subscriber::EnvFilter::try_from_default_env()
+                        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("error"))
+                )
+                .with_test_writer()
+                .try_init();
+        });
+    }
 
     #[test]
     fn test_quorum_size_calculation() {
+        init();
         let state = NodeState::new(0);
         
         assert_eq!(state.quorum_size(4), 3);
@@ -198,6 +214,7 @@ mod tests {
 
     #[test]
     fn test_has_quorum() {
+        init();
         let state = NodeState::new(0);
         
         assert!(state.has_quorum(&[0, 1, 2], 4));
@@ -207,6 +224,7 @@ mod tests {
 
     #[test]
     fn test_pbft_manager_creation() {
+        init();
         let addresses = vec![
             "127.0.0.1:8000".to_string(),
             "127.0.0.1:8001".to_string(),
@@ -219,6 +237,7 @@ mod tests {
 
     #[test]
     fn test_is_primary() {
+        init();
         let addresses = vec![
             "127.0.0.1:8000".to_string(),
             "127.0.0.1:8001".to_string(),
@@ -237,6 +256,7 @@ mod tests {
 
     #[test]
     fn test_message_handling() {
+        init();
         let addresses = vec![
             "127.0.0.1:8000".to_string(),
             "127.0.0.1:8001".to_string(),
@@ -261,6 +281,7 @@ mod tests {
 
     #[test]
     fn test_quorum_reached() {
+        init();
         let addresses = vec![
             "127.0.0.1:8000".to_string(),
             "127.0.0.1:8001".to_string(),

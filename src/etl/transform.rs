@@ -71,15 +71,32 @@ impl Transformer {
 mod tests {
     use super::*;
     use crate::etl::validator::Validator;
+    
+    // Initialize logger for tests (only once)
+    static INIT: std::sync::Once = std::sync::Once::new();
+    
+    fn init() {
+        INIT.call_once(|| {
+            let _ = tracing_subscriber::fmt()
+                .with_env_filter(
+                    tracing_subscriber::EnvFilter::try_from_default_env()
+                        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("error"))
+                )
+                .with_test_writer()
+                .try_init();
+        });
+    }
 
     #[test]
     fn test_transformer_creation() {
+        init();
         let transformer = Transformer::new();
         assert_eq!(transformer.deduplication_window_seconds(), 60);
     }
 
     #[test]
     fn test_transformer_with_validator() {
+        init();
         use chrono::Utc;
         let validator = Validator::new()
             .with_price_range(0.0, 100000.0)
@@ -91,12 +108,14 @@ mod tests {
 
     #[test]
     fn test_transformer_with_deduplication_window() {
+        init();
         let transformer = Transformer::new().with_deduplication_window(30);
         assert_eq!(transformer.deduplication_window_seconds(), 30);
     }
 
     #[test]
     fn test_transform_valid_data() {
+        init();
         use chrono::Utc;
         let transformer = Transformer::new();
         let timestamp = Utc::now().timestamp();
@@ -116,6 +135,7 @@ mod tests {
 
     #[test]
     fn test_transform_invalid_price() {
+        init();
         let transformer = Transformer::new();
         let result = transformer.transform(
             -100.0,
@@ -128,6 +148,7 @@ mod tests {
 
     #[test]
     fn test_transform_invalid_timestamp() {
+        init();
         let transformer = Transformer::new();
         let result = transformer.transform(
             50000.0,
@@ -140,6 +161,7 @@ mod tests {
 
     #[test]
     fn test_transform_invalid_source() {
+        init();
         let transformer = Transformer::new();
         let result = transformer.transform(
             50000.0,
@@ -152,6 +174,7 @@ mod tests {
 
     #[test]
     fn test_transform_deduplication_detected() {
+        init();
         use chrono::Utc;
         let validator = Validator::new().with_timestamp_drift(86400); // 24 hours
         let transformer = Transformer::new()
@@ -180,6 +203,7 @@ mod tests {
 
     #[test]
     fn test_transform_deduplication_not_detected() {
+        init();
         use chrono::Utc;
         let validator = Validator::new().with_timestamp_drift(86400); // 24 hours
         let transformer = Transformer::new()
@@ -199,6 +223,7 @@ mod tests {
 
     #[test]
     fn test_normalize_price() {
+        init();
         let transformer = Transformer::new();
         
         assert_eq!(transformer.normalize_price(50000.123), 50000.12);
@@ -209,6 +234,7 @@ mod tests {
 
     #[test]
     fn test_transform_result_fields() {
+        init();
         use chrono::Utc;
         let transformer = Transformer::new();
         let timestamp = Utc::now().timestamp();

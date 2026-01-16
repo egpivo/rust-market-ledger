@@ -1,6 +1,7 @@
 use crate::etl::Block;
 use rusqlite::{params, Connection};
 use std::sync::{Arc, Mutex};
+use tracing::{info, debug};
 
 /// Custom error type for database operations
 #[derive(Debug)]
@@ -104,7 +105,7 @@ impl DatabaseManager {
             ],
         )?;
         
-        println!("[Database] Block #{} saved to SQLite.", block.index);
+        info!(block_index = block.index, "Database: Block saved to SQLite");
         Ok(())
     }
 
@@ -134,7 +135,7 @@ impl DatabaseManager {
         }
         
         tx.commit()?;
-        println!("[Database] Saved {} blocks in batch.", count);
+        info!(block_count = count, "Database: Saved blocks in batch");
         Ok(count)
     }
 
@@ -294,15 +295,15 @@ impl DatabaseManager {
     pub fn print_latest_blocks(&self, limit: u64) -> DbResult<()> {
         let blocks = self.query_latest_blocks(limit)?;
         
-        println!("\n[Audit] Verifying latest blocks in DB:");
+        info!("Audit: Verifying latest blocks in DB");
         for block in blocks {
             let data_preview = serde_json::to_string(&block.data)
                 .unwrap_or_else(|_| "Invalid JSON".to_string());
-            println!(
-                "   Block #{} | Hash: {}... | Data: {:.50}...",
-                block.index,
-                &block.hash[0..8.min(block.hash.len())],
-                data_preview
+            debug!(
+                block_index = block.index,
+                hash_preview = &block.hash[0..8.min(block.hash.len())],
+                data_preview = &data_preview[0..50.min(data_preview.len())],
+                "Block details"
             );
         }
         Ok(())
@@ -448,6 +449,22 @@ mod tests {
     use super::*;
     use crate::etl::{Block, MarketData};
     use std::fs;
+    
+    // Initialize logger for tests (only once)
+    static INIT: std::sync::Once = std::sync::Once::new();
+    
+    fn init() {
+        INIT.call_once(|| {
+            // Suppress logs in tests unless RUST_LOG is explicitly set
+            let _ = tracing_subscriber::fmt()
+                .with_env_filter(
+                    tracing_subscriber::EnvFilter::try_from_default_env()
+                        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("error"))
+                )
+                .with_test_writer()
+                .try_init();
+        });
+    }
 
     fn create_test_block(index: u64, previous_hash: &str) -> Block {
         let mut block = Block {
@@ -469,6 +486,7 @@ mod tests {
 
     #[test]
     fn test_database_manager_new() {
+        init();
         let test_db = "test_new.db";
         let result = DatabaseManager::new(test_db);
         assert!(result.is_ok());
@@ -477,6 +495,7 @@ mod tests {
 
     #[test]
     fn test_database_init() {
+        init();
         let test_db = "test_init.db";
         let db = DatabaseManager::new(test_db).unwrap();
         assert!(db.init().is_ok());
@@ -485,6 +504,7 @@ mod tests {
 
     #[test]
     fn test_save_and_get_block_by_index() {
+        init();
         let test_db = "test_get_by_index.db";
         fs::remove_file(test_db).ok();
         
@@ -503,6 +523,7 @@ mod tests {
 
     #[test]
     fn test_get_block_by_hash() {
+        init();
         let test_db = "test_get_by_hash.db";
         fs::remove_file(test_db).ok();
         
@@ -525,6 +546,7 @@ mod tests {
 
     #[test]
     fn test_get_latest_block() {
+        init();
         let test_db = "test_latest.db";
         fs::remove_file(test_db).ok();
         
@@ -555,6 +577,7 @@ mod tests {
 
     #[test]
     fn test_query_latest_blocks() {
+        init();
         let test_db = "test_query_latest.db";
         fs::remove_file(test_db).ok();
         
@@ -579,6 +602,7 @@ mod tests {
 
     #[test]
     fn test_get_blocks_range() {
+        init();
         let test_db = "test_range.db";
         fs::remove_file(test_db).ok();
         
@@ -603,6 +627,7 @@ mod tests {
 
     #[test]
     fn test_save_blocks_batch() {
+        init();
         let test_db = "test_batch.db";
         fs::remove_file(test_db).ok();
         
@@ -628,6 +653,7 @@ mod tests {
 
     #[test]
     fn test_verify_chain_valid() {
+        init();
         let test_db = "test_verify_valid.db";
         fs::remove_file(test_db).ok();
         
@@ -649,6 +675,7 @@ mod tests {
 
     #[test]
     fn test_verify_chain_invalid() {
+        init();
         let test_db = "test_verify_invalid.db";
         fs::remove_file(test_db).ok();
         
@@ -670,6 +697,7 @@ mod tests {
 
     #[test]
     fn test_delete_block() {
+        init();
         let test_db = "test_delete.db";
         fs::remove_file(test_db).ok();
         
@@ -694,6 +722,7 @@ mod tests {
 
     #[test]
     fn test_get_stats() {
+        init();
         let test_db = "test_stats.db";
         fs::remove_file(test_db).ok();
         
@@ -726,6 +755,7 @@ mod tests {
 
     #[test]
     fn test_database_error_display() {
+        init();
         let error = DatabaseError::NotFound("test".to_string());
         let error_str = format!("{}", error);
         assert!(error_str.contains("Not found"));

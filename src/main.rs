@@ -1,6 +1,7 @@
 mod network;
 mod etl;
 mod consensus;
+mod logger;
 
 use chrono::prelude::*;
 use consensus::algorithms::{MessageType, PBFTManager, PBFTMessage};
@@ -15,14 +16,25 @@ use std::time::Duration;
 use std::env;
 use std::thread;
 use actix_rt;
+use tracing::{info, warn, error, debug};
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs;
+    
+    // Initialize logger for tests (only once)
+    static INIT: std::sync::Once = std::sync::Once::new();
+    
+    fn init() {
+        INIT.call_once(|| {
+            logger::init_test_logger();
+        });
+    }
 
     #[test]
     fn test_block_hash_calculation() {
+        init();
         let block = Block {
             index: 1,
             timestamp: 1234567890,
@@ -44,6 +56,7 @@ mod tests {
 
     #[test]
     fn test_block_hash_consistency() {
+        init();
         let block1 = Block {
             index: 1,
             timestamp: 1234567890,
@@ -64,6 +77,7 @@ mod tests {
 
     #[test]
     fn test_database_manager_init() {
+        init();
         let test_db = "test_blockchain.db";
         let db = DatabaseManager::new(test_db).unwrap();
         assert!(db.init().is_ok());
@@ -76,6 +90,7 @@ mod tests {
 
     #[test]
     fn test_database_save_and_retrieve_block() {
+        init();
         let test_db = "test_blockchain_save.db";
         let db = DatabaseManager::new(test_db).unwrap();
         db.init().unwrap();
@@ -118,6 +133,7 @@ mod tests {
     
     #[test]
     fn test_database_batch_operations() {
+        init();
         let test_db = "test_blockchain_batch.db";
         // Clean up any existing test database
         fs::remove_file(test_db).ok();
@@ -185,7 +201,7 @@ async fn run_pbft_consensus(
     let sequence = block.index;
     
     if pbft.is_primary(sequence) {
-        println!("[PBFT] Node {} is PRIMARY for block #{}", pbft.node_id(), sequence);
+        info!(node_id = pbft.node_id(), block_index = sequence, "PBFT: Node is PRIMARY for block");
         let block_json = serde_json::to_string(&block).unwrap_or_default();
         let pre_prepare_msg = pbft.create_pre_prepare(&block.hash, &block_json, sequence);
         
@@ -200,7 +216,7 @@ async fn run_pbft_consensus(
     let prepare_quorum = pbft.handle_prepare(&prepare_msg);
     
     if !prepare_quorum {
-        println!("[PBFT] Waiting for Prepare quorum...");
+        debug!(block_index = sequence, "PBFT: Waiting for Prepare quorum");
         tokio::time::sleep(Duration::from_secs(2)).await;
     }
     
@@ -209,17 +225,21 @@ async fn run_pbft_consensus(
     let commit_quorum = pbft.handle_commit(&commit_msg);
     
     if commit_quorum {
-        println!("[PBFT] Block #{} reached COMMIT quorum!", sequence);
+        info!(block_index = sequence, "PBFT: Block reached COMMIT quorum");
         tokio::time::sleep(Duration::from_millis(300)).await;
         return Ok(Some(block));
     }
     
-    println!("[PBFT] Block #{} failed to reach commit quorum", sequence);
+    warn!(block_index = sequence, "PBFT: Block failed to reach commit quorum");
     Ok(None)
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    // Initialize logger first (before any other operations)
+    // Use detailed format for demo (includes hostname and memory)
+    logger::init_logger_detailed();
+    
     let args: Vec<String> = env::args().collect();
     let node_id: usize = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
     let port: u16 = args.get(2).and_then(|s| s.parse().ok()).unwrap_or(8000 + node_id as u16);
@@ -233,8 +253,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ];
     let total_nodes = node_addresses.len();
     
-    println!("[Node {}] Starting on port {}", node_id, port);
-    println!("[Network] Total nodes: {}", total_nodes);
+    let memory = logger::get_memory_usage_public();
+    info!(
+        hostname = %logger::get_hostname(),
+        memory = %memory,
+        "Node {} starting on port {}", node_id, port
+    );
+    info!("Network: {} total nodes", total_nodes);
     
     let db_path = format!("blockchain_node_{}.db", node_id);
     let db = DatabaseManager::new(&db_path)?;
@@ -277,14 +302,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
         last_hash = latest_block.hash.clone();
         last_index = latest_block.index;
         last_timestamp = Some(latest_block.timestamp);
-        println!("[ETL] Loaded previous block: #{} (hash: {}...)", 
-                 last_index, 
-                 &last_hash[0..8.min(last_hash.len())]);
+        info!(
+            block_index = last_index,
+            hash_preview = &last_hash[0..8.min(last_hash.len())],
+            "ETL: Loaded previous block"
+        );
     }
     
     for round in 0..3 {
-        println!("\n{}", "=".repeat(60));
-        println!("Round {}: Starting ETL + PBFT Consensus", round + 1);
+        info!("{}", "=".repeat(60));
+        info!(round = round + 1, "Starting ETL + PBFT Consensus");
         
         // Extract: Get market data from API or offline source
         let extract_result = if use_offline {
@@ -295,8 +322,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         
         match extract_result {
             Ok(extract_data) => {
-                println!("[Extract] Price: ${:.2} | Source: {} | Timestamp: {}", 
-                         extract_data.price, extract_data.source, extract_data.timestamp);
+                info!(
+                    price = extract_data.price,
+                    source = %extract_data.source,
+                    timestamp = extract_data.timestamp,
+                    "Extract: Market data retrieved"
+                );
                 
                 // Transform: Validate and process the data
                 let transform_result = transformer.transform(
@@ -309,16 +340,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 match transform_result {
                     Ok(transformed_data) => {
                         if transformed_data.is_deduplicated {
-                            println!("[Transform] Warning: Data appears to be duplicate (within {}s window), skipping...", 
-                                     transformer.deduplication_window_seconds());
+                            warn!(
+                                window_seconds = transformer.deduplication_window_seconds(),
+                                "Transform: Data appears to be duplicate, skipping"
+                            );
                             continue;
                         }
                         
                         // Normalize price if needed
                         let normalized_price = transformer.normalize_price(transformed_data.price);
                         
-                        println!("[Transform] Transformed: Asset={}, Price=${:.2}, Normalized=${:.2}", 
-                                 transformed_data.asset, transformed_data.price, normalized_price);
+                        debug!(
+                            asset = %transformed_data.asset,
+                            price = transformed_data.price,
+                            normalized_price = normalized_price,
+                            "Transform: Data transformed and normalized"
+                        );
                         
                         // Create MarketData from transformed result
                         let market_data = MarketData {
@@ -340,9 +377,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         };
                         new_block.calculate_hash_with_nonce();
                         
-                        println!("[Transform] Block #{} created (hash: {}...)", 
-                                 new_block.index, 
-                                 &new_block.hash[0..8.min(new_block.hash.len())]);
+                        info!(
+                            block_index = new_block.index,
+                            hash_preview = &new_block.hash[0..8.min(new_block.hash.len())],
+                            "Transform: Block created"
+                        );
                         
                         // PBFT Consensus
                         match run_pbft_consensus(new_block.clone(), pbft.clone(), &node_addresses, port).await {
@@ -352,41 +391,44 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                     Ok(_) => {
                                         last_hash = committed_block.hash.clone();
                                         last_timestamp = Some(committed_block.timestamp);
-                                        println!("[Load] Block #{} committed and saved!", committed_block.index);
+                                        info!(
+                                            block_index = committed_block.index,
+                                            "Load: Block committed and saved"
+                                        );
                                     }
                                     Err(e) => {
-                                        eprintln!("[Error] [Load] Database Error: {}", e);
+                                        error!(error = %e, "Load: Database error");
                                         last_index -= 1;
                                     }
                                 }
                             }
                             Ok(None) => {
-                                eprintln!("[Warning] [PBFT] Consensus failed for block #{}", new_block.index);
+                                warn!(block_index = new_block.index, "PBFT: Consensus failed");
                                 last_index -= 1;
                             }
                             Err(e) => {
-                                eprintln!("[Error] [PBFT] Error: {}", e);
+                                error!(error = %e, "PBFT: Error during consensus");
                                 last_index -= 1;
                             }
                         }
                     }
                     Err(e) => {
-                        eprintln!("[Error] [Transform] Validation/Transformation Error: {}", e);
+                        error!(error = %e, "Transform: Validation/Transformation error");
                     }
                 }
             }
             Err(e) => {
-                eprintln!("[Error] [Extract] Fetch Error: {}", e);
+                error!(error = %e, "Extract: Fetch error");
             }
         }
         
         tokio::time::sleep(Duration::from_secs(3)).await;
     }
     
-    println!("\n{}", "=".repeat(60));
+    info!("{}", "=".repeat(60));
     db.print_latest_blocks(5)?;
     
-    println!("\n[Success] Node {} completed successfully!", node_id);
+    info!(node_id = node_id, "Node completed successfully");
     
     tokio::time::sleep(Duration::from_secs(5)).await;
     

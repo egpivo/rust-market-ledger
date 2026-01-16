@@ -29,3 +29,8 @@ README_PBFT.md
 node_*.log
 node_*.pid
 *.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local

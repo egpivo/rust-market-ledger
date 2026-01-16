@@ -52,11 +52,16 @@ impl Extractor {
     }
 
     pub async fn extract_from_api(&self) -> Result<ExtractResult, Box<dyn Error>> {
-        let url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
+        // Get API URL from environment variable, with default fallback
+        let url = std::env::var("COINGECKO_API_URL")
+            .unwrap_or_else(|_| {
+                "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd".to_string()
+            });
+        
         let mut last_error = None;
 
         for attempt in 1..=self.max_retries {
-            match self.client.get(url).send().await {
+            match self.client.get(&url).send().await {
                 Ok(response) => {
                     let status = response.status();
                     if !status.is_success() {
@@ -135,15 +140,32 @@ impl Extractor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    
+    // Initialize logger for tests (only once)
+    static INIT: std::sync::Once = std::sync::Once::new();
+    
+    fn init() {
+        INIT.call_once(|| {
+            let _ = tracing_subscriber::fmt()
+                .with_env_filter(
+                    tracing_subscriber::EnvFilter::try_from_default_env()
+                        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("error"))
+                )
+                .with_test_writer()
+                .try_init();
+        });
+    }
 
     #[tokio::test]
     async fn test_extractor_creation() {
+        init();
         let extractor = Extractor::new();
         assert!(extractor.is_ok());
     }
 
     #[tokio::test]
     async fn test_extractor_with_max_retries() {
+        init();
         let extractor = Extractor::new().unwrap();
         let extractor = extractor.with_max_retries(5);
         // We can't directly access max_retries, but we can test the builder pattern works
@@ -152,6 +174,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_extractor_with_validator() {
+        init();
         let validator = Validator::new().with_price_range(0.0, 100000.0);
         let extractor = Extractor::new().unwrap();
         let extractor = extractor.with_validator(validator);
@@ -160,6 +183,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_extract_offline() {
+        init();
         let extractor = Extractor::new().unwrap();
         let result = extractor.extract_offline().await;
         
@@ -173,6 +197,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_extract_offline_validation() {
+        init();
         let validator = Validator::new().with_price_range(0.0, 100.0);
         let extractor = Extractor::new()
             .unwrap()
@@ -185,6 +210,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_extract_result_fields() {
+        init();
         let extractor = Extractor::new().unwrap();
         let result = extractor.extract_offline().await.unwrap();
         

@@ -2,6 +2,7 @@ use crate::consensus::algorithms::PBFTMessage;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use serde_json::json;
 use std::sync::Arc;
+use tracing::{info, warn};
 
 pub struct NetworkHandler {
     pub on_message: Arc<dyn Fn(PBFTMessage) -> bool + Send + Sync>,
@@ -39,7 +40,7 @@ pub async fn start_server(
 ) -> std::io::Result<()> {
     let handler_data = web::Data::new(handler);
     
-    println!("[Network] Starting HTTP server on port {}", port);
+    info!(port = port, "Network: Starting HTTP server");
     
     HttpServer::new(move || {
         App::new()
@@ -82,7 +83,7 @@ pub async fn broadcast_message(
         }
         
         if let Err(e) = send_message(addr, message).await {
-            eprintln!("[Warning] [Network] Failed to send to {}: {}", addr, e);
+            warn!(address = %addr, error = %e, "Network: Failed to send message");
         }
     }
 }
