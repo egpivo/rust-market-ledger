@@ -26,6 +26,10 @@ pub struct ConsensusRequirements {
 }
 
 /// Consensus message for communication between nodes
+/// 
+/// This is a generic message type for the ConsensusAlgorithm trait.
+/// Individual algorithms may use their own message types (e.g., PBFT uses PBFTMessage).
+#[allow(dead_code)] // Reserved for future use in generic consensus implementations
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConsensusMessage {
     pub algorithm: String,

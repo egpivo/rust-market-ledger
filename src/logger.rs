@@ -91,6 +91,9 @@ fn get_memory_usage() -> String {
 /// - `RUST_LOG=debug` - Show debug level and above
 /// - `RUST_LOG=rust_market_ledger=debug,actix_web=info` - Module-specific levels
 /// - `RUST_LOG=warn` - Show only warnings and errors
+/// 
+/// Note: For detailed format with hostname and memory, use `init_logger_detailed()` instead.
+#[allow(dead_code)] // Alternative to init_logger_detailed() for simpler output
 pub fn init_logger() {
     // Try to load .env file first (if using dotenvy)
     dotenvy::dotenv().ok();
