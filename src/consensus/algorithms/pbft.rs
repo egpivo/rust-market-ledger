@@ -3,7 +3,7 @@
 
 use crate::consensus::{ConsensusAlgorithm, ConsensusMessage, ConsensusResult, ConsensusRequirements};
 use crate::etl::Block;
-use crate::pbft::PBFTManager;
+use super::pbft_impl::PBFTManager;
 use async_trait::async_trait;
 use std::error::Error;
 use std::sync::Arc;

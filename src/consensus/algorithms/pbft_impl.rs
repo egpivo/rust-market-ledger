@@ -1,3 +1,6 @@
+//! PBFT implementation details
+//! This module contains the core PBFT logic (PBFTManager, PBFTMessage, etc.)
+
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

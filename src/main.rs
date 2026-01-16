@@ -1,10 +1,9 @@
-mod pbft;
 mod network;
 mod etl;
 mod consensus;
 
 use chrono::prelude::*;
-use pbft::{MessageType, PBFTManager, PBFTMessage};
+use consensus::algorithms::{MessageType, PBFTManager, PBFTMessage};
 use network::{broadcast_message, NetworkHandler, start_server};
 use etl::{Block, MarketData};
 use etl::load::DatabaseManager;

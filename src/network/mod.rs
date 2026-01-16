@@ -1,4 +1,4 @@
-use crate::pbft::PBFTMessage;
+use crate::consensus::algorithms::PBFTMessage;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use serde_json::json;
 use std::sync::Arc;
