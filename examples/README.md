@@ -77,6 +77,20 @@ Run all three examples in sequence for comparison:
 cargo run --example run_all_comparisons
 ```
 
+## Trilemma Comparison Experiment
+
+**File**: `examples/trilemma_comparison.rs`
+
+**Teaching Purpose**:
+- Combine performance metrics with qualitative trilemma scores
+- Report runtime and standard deviation for credibility
+- Provide a reproducible baseline for Medium articles
+
+**Run**:
+```bash
+cargo run --example trilemma_comparison
+```
+
 ## Comparison Summary
 
 | Strategy | Latency | Safety | BFT | Complexity |

@@ -7,7 +7,7 @@ use rust_market_ledger::consensus::comparison::*;
 use rust_market_ledger::consensus::algorithms::*;
 use rust_market_ledger::etl::{Block, MarketData};
 use std::sync::Arc;
-use std::collections::HashMap;
+use std::time::Instant;
 
 /// Trilemma scores for each consensus algorithm
 struct TrilemmaScores {
@@ -20,26 +20,64 @@ struct TrilemmaScores {
 struct StrategyResult {
     strategy_name: String,
     metrics: ConsensusMetrics,
+    metrics_std_dev: MetricsStdDev, // Standard deviation for statistical credibility
     trilemma: TrilemmaScores,
+    runtime_seconds: f64, // Total runtime for this strategy
+    runtime_std_dev: f64, // Runtime standard deviation
+}
+
+/// Standard deviation metrics for statistical analysis
+struct MetricsStdDev {
+    latency_std_dev: f64,
+    throughput_std_dev: f64,
+    commit_rate_std_dev: f64,
+    error_rate_std_dev: f64,
 }
 
 /// Run comprehensive trilemma comparison experiment
 #[tokio::main]
 async fn main() {
+    // Record total experiment start time
+    let experiment_start = Instant::now();
+    
     println!("\n{}", "=".repeat(100));
     println!("  Blockchain Trilemma Comparison Experiment");
     println!("  Comparing: PBFT, Gossip, Eventual, Quorum-less, Flexible Paxos");
     println!("{}", "=".repeat(100));
     println!();
     
-    // Experiment parameters
+    // Experiment parameters - FIXED for reproducibility
     const BLOCKS_PER_ROUND: usize = 100;
-    const ROUNDS: usize = 5;
+    const ROUNDS: usize = 5; // Run 5 times for statistical significance
+    const TOTAL_NODES: usize = 4;
+    const NODE_ID: usize = 0;
     
-    println!("Experiment Configuration:");
+    // Consensus algorithm parameters - FIXED for reproducibility
+    const PBFT_QUORUM: usize = 3; // 2f+1 where f=1, total=4
+    const GOSSIP_FANOUT: usize = 2;
+    const EVENTUAL_DELAY_MS: u64 = 500;
+    const EVENTUAL_THRESHOLD: usize = 2;
+    const QUORUMLESS_THRESHOLD: f64 = 5.0;
+    const FLEXIBLE_PAXOS_Q1: usize = 2;
+    const FLEXIBLE_PAXOS_Q2: usize = 3;
+    
+    println!("Experiment Configuration (FIXED for reproducibility):");
     println!("  Blocks per round: {}", BLOCKS_PER_ROUND);
-    println!("  Rounds per strategy: {}", ROUNDS);
+    println!("  Rounds per strategy: {} (for statistical significance)", ROUNDS);
     println!("  Total blocks per strategy: {}", BLOCKS_PER_ROUND * ROUNDS);
+    println!("  Total nodes: {}", TOTAL_NODES);
+    println!();
+    println!("Consensus Algorithm Parameters:");
+    println!("  PBFT: quorum={} (2f+1, f=1, total={})", PBFT_QUORUM, TOTAL_NODES);
+    println!("  Gossip: fanout={}", GOSSIP_FANOUT);
+    println!("  Eventual: delay={}ms, threshold={}", EVENTUAL_DELAY_MS, EVENTUAL_THRESHOLD);
+    println!("  Quorum-less: threshold={}", QUORUMLESS_THRESHOLD);
+    println!("  Flexible Paxos: Q1={}, Q2={}", FLEXIBLE_PAXOS_Q1, FLEXIBLE_PAXOS_Q2);
+    println!();
+    println!("Data Source: Simulated ETL data (offline/mock)");
+    println!("Network: Simulated (single-machine simulation)");
+    println!("  Note: PBFT has network handler but runs in simulated mode");
+    println!("  Other algorithms use simulated consensus logic");
     println!();
     
     // Generate test blocks (same for all strategies)
@@ -71,9 +109,7 @@ async fn main() {
     println!("Generated {} test blocks", blocks.len());
     println!();
     
-    // Initialize consensus strategies
-    let total_nodes = 4;
-    let node_id = 0;
+    // Initialize consensus strategies with FIXED parameters
     let node_addresses = vec![
         "127.0.0.1:8000".to_string(),
         "127.0.0.1:8001".to_string(),
@@ -81,8 +117,8 @@ async fn main() {
         "127.0.0.1:8003".to_string(),
     ];
     
-    // Create all strategies
-    let pbft_manager = Arc::new(PBFTManager::new(node_id, total_nodes, node_addresses.clone()));
+    // Create all strategies with FIXED parameters for reproducibility
+    let pbft_manager = Arc::new(PBFTManager::new(NODE_ID, TOTAL_NODES, node_addresses.clone()));
     let pbft_consensus = Arc::new(pbft::PBFTConsensus::new(
         pbft_manager.clone(),
         node_addresses.clone(),
@@ -97,25 +133,25 @@ async fn main() {
         (
             "Gossip".to_string(),
             Arc::new(ConsensusAlgorithmAdapter::new(
-                Arc::new(gossip::GossipConsensus::new(node_id, total_nodes, 2))
+                Arc::new(gossip::GossipConsensus::new(NODE_ID, TOTAL_NODES, GOSSIP_FANOUT))
             )),
         ),
         (
             "Eventual".to_string(),
             Arc::new(ConsensusAlgorithmAdapter::new(
-                Arc::new(eventual::EventualConsensus::new(node_id, 500, 2))
+                Arc::new(eventual::EventualConsensus::new(NODE_ID, EVENTUAL_DELAY_MS, EVENTUAL_THRESHOLD))
             )),
         ),
         (
             "Quorum-less".to_string(),
             Arc::new(ConsensusAlgorithmAdapter::new(
-                Arc::new(quorumless::QuorumlessConsensus::new(node_id, 5.0))
+                Arc::new(quorumless::QuorumlessConsensus::new(NODE_ID, QUORUMLESS_THRESHOLD))
             )),
         ),
         (
             "Flexible Paxos".to_string(),
             Arc::new(ConsensusAlgorithmAdapter::new(
-                Arc::new(flexible_paxos::FlexiblePaxos::new(node_id, total_nodes, 2, 3))
+                Arc::new(flexible_paxos::FlexiblePaxos::new(NODE_ID, TOTAL_NODES, FLEXIBLE_PAXOS_Q1, FLEXIBLE_PAXOS_Q2))
             )),
         ),
     ];
@@ -132,18 +168,33 @@ async fn main() {
     for (strategy_name, strategy) in &strategies {
         println!("Testing {}...", strategy_name);
         
-        // Run multiple rounds and collect metrics
+        // Record strategy start time
+        let strategy_start = Instant::now();
+        
+        // Run multiple rounds and collect metrics (for statistical analysis)
         let mut round_metrics: Vec<ConsensusMetrics> = Vec::new();
+        let mut round_runtimes: Vec<f64> = Vec::new();
         
         for round in 1..=ROUNDS {
             print!("  Round {}/{}... ", round, ROUNDS);
+            let round_start = Instant::now();
+            // Use the SAME blocks for all rounds to ensure reproducibility
             let metrics = benchmark_consensus_strategy(strategy.clone(), &blocks).await;
+            let round_elapsed = round_start.elapsed().as_secs_f64();
             round_metrics.push(metrics);
-            println!("Done");
+            round_runtimes.push(round_elapsed);
+            println!("Done ({:.2}s)", round_elapsed);
         }
         
-        // Calculate average metrics across rounds
+        // Calculate strategy runtime (average across rounds)
+        let strategy_runtime = round_runtimes.iter().sum::<f64>() / round_runtimes.len() as f64;
+        
+        // Calculate average metrics and standard deviation across rounds
         let avg_metrics = calculate_average_metrics(&round_metrics);
+        let metrics_std_dev = calculate_metrics_std_dev(&round_metrics, &avg_metrics);
+        
+        // Calculate runtime statistics
+        let runtime_std_dev = calculate_runtime_std_dev(&round_runtimes);
         
         // Assign trilemma scores based on algorithm characteristics
         let trilemma = get_trilemma_scores(strategy_name);
@@ -151,21 +202,83 @@ async fn main() {
         all_results.push(StrategyResult {
             strategy_name: strategy_name.clone(),
             metrics: avg_metrics,
+            metrics_std_dev,
             trilemma,
+            runtime_seconds: strategy_runtime,
+            runtime_std_dev,
         });
         
-        println!("  {} completed\n", strategy_name);
+        println!("  {} completed in {:.2}s\n", strategy_name, strategy_runtime);
     }
     
+    // Calculate total experiment runtime
+    let total_runtime = experiment_start.elapsed();
+    
+    // Print runtime information
+    print_runtime_summary(&all_results, total_runtime, ROUNDS);
+    
     // Print comprehensive comparison table
-    print_trilemma_comparison_table(&all_results);
+    print_trilemma_comparison_table(&all_results, ROUNDS);
     
     // Print detailed analysis
     print_trilemma_analysis(&all_results);
     
     println!("{}", "=".repeat(100));
-    println!("Experiment completed!");
+    println!(
+        "Experiment completed in {:.2}s ({:.2} minutes)",
+        total_runtime.as_secs_f64(),
+        total_runtime.as_secs_f64() / 60.0
+    );
     println!("{}", "=".repeat(100));
+}
+
+/// Calculate standard deviation for runtime
+fn calculate_runtime_std_dev(runtimes: &[f64]) -> f64 {
+    if runtimes.len() < 2 {
+        return 0.0;
+    }
+    
+    let mean = runtimes.iter().sum::<f64>() / runtimes.len() as f64;
+    let variance = runtimes.iter()
+        .map(|&x| (x - mean).powi(2))
+        .sum::<f64>() / (runtimes.len() - 1) as f64;
+    
+    variance.sqrt()
+}
+
+/// Calculate standard deviation for metrics
+fn calculate_metrics_std_dev(round_metrics: &[ConsensusMetrics], avg_metrics: &ConsensusMetrics) -> MetricsStdDev {
+    if round_metrics.len() < 2 {
+        return MetricsStdDev {
+            latency_std_dev: 0.0,
+            throughput_std_dev: 0.0,
+            commit_rate_std_dev: 0.0,
+            error_rate_std_dev: 0.0,
+        };
+    }
+    
+    let latency_variance = round_metrics.iter()
+        .map(|m| (m.avg_latency_ms - avg_metrics.avg_latency_ms).powi(2))
+        .sum::<f64>() / (round_metrics.len() - 1) as f64;
+    
+    let throughput_variance = round_metrics.iter()
+        .map(|m| (m.throughput_blocks_per_sec - avg_metrics.throughput_blocks_per_sec).powi(2))
+        .sum::<f64>() / (round_metrics.len() - 1) as f64;
+    
+    let commit_rate_variance = round_metrics.iter()
+        .map(|m| (m.commit_rate - avg_metrics.commit_rate).powi(2))
+        .sum::<f64>() / (round_metrics.len() - 1) as f64;
+    
+    let error_rate_variance = round_metrics.iter()
+        .map(|m| (m.error_rate - avg_metrics.error_rate).powi(2))
+        .sum::<f64>() / (round_metrics.len() - 1) as f64;
+    
+    MetricsStdDev {
+        latency_std_dev: latency_variance.sqrt(),
+        throughput_std_dev: throughput_variance.sqrt(),
+        commit_rate_std_dev: commit_rate_variance.sqrt(),
+        error_rate_std_dev: error_rate_variance.sqrt(),
+    }
 }
 
 /// Calculate average metrics across multiple rounds
@@ -242,26 +355,92 @@ fn get_trilemma_scores(strategy_name: &str) -> TrilemmaScores {
     }
 }
 
+/// Print runtime summary for credibility
+fn print_runtime_summary(results: &[StrategyResult], total_runtime: std::time::Duration, rounds: usize) {
+    println!("\n{}", "=".repeat(120));
+    println!("  Runtime Summary (for Medium article credibility)");
+    println!("{}", "=".repeat(120));
+    println!();
+    
+    println!("Experiment Runtime Breakdown (Mean ± Std Dev):");
+    println!("{:<20} | {:>18} | {:>18} | {:>15}", 
+        "Strategy", "Runtime (s)", "Runtime (min)", "Blocks/sec");
+    println!("{}", "-".repeat(120));
+    
+    for result in results {
+        let blocks_per_sec = if result.runtime_seconds > 0.0 {
+            result.metrics.total_blocks as f64 / result.runtime_seconds
+        } else {
+            0.0
+        };
+        
+        println!("{:<20} | {:>8.2} ± {:>6.2} | {:>8.2} ± {:>6.2} | {:>15.2}", 
+            result.strategy_name,
+            result.runtime_seconds,
+            result.runtime_std_dev,
+            result.runtime_seconds / 60.0,
+            result.runtime_std_dev / 60.0,
+            blocks_per_sec
+        );
+    }
+    
+    println!();
+    println!("Total Experiment Runtime:");
+    println!("  {:.2} seconds ({:.2} minutes)", 
+        total_runtime.as_secs_f64(),
+        total_runtime.as_secs_f64() / 60.0);
+    println!();
+    
+    // System information (for reproducibility)
+    println!("System Information (for reproducibility):");
+    println!("  OS: {}", std::env::consts::OS);
+    println!("  Architecture: {}", std::env::consts::ARCH);
+    if let Ok(rustc_version) = std::process::Command::new("rustc")
+        .arg("--version")
+        .output()
+    {
+        if let Ok(version) = String::from_utf8(rustc_version.stdout) {
+            println!("  Rust Version: {}", version.trim());
+        }
+    }
+    println!();
+    
+    // Experimental scope and limitations
+    println!("Experimental Scope and Limitations:");
+    println!("  - Network: Simulated (single-machine)");
+    println!("  - PBFT: Has network handler but runs in simulated mode");
+    println!("  - Other algorithms: Use simulated consensus logic");
+    println!("  - Data: Simulated ETL data (offline/mock)");
+    println!("  - All strategies use the SAME blocks for fair comparison");
+    println!("  - Results are averaged over {} runs with std dev reported", rounds);
+    println!();
+}
+
 /// Print comprehensive trilemma comparison table
-fn print_trilemma_comparison_table(results: &[StrategyResult]) {
+fn print_trilemma_comparison_table(results: &[StrategyResult], rounds: usize) {
     println!("\n{}", "=".repeat(120));
     println!("  Comprehensive Trilemma Comparison Table");
     println!("{}", "=".repeat(120));
     println!();
     
-    // Performance metrics table
-    println!("Performance Metrics:");
+    // Performance metrics table with standard deviation
+    println!("Performance Metrics (Mean ± Std Dev, n={}):", rounds);
     println!("{:<20} | {:>12} | {:>12} | {:>12} | {:>12} | {:>12}", 
         "Strategy", "Latency (ms)", "Throughput", "Commit Rate", "Error Rate", "Integrity");
     println!("{}", "-".repeat(120));
     
     for result in results {
-        println!("{:<20} | {:>12.2} | {:>12.2} | {:>12.2}% | {:>12.2}% | {:>12}", 
+        println!(
+            "{:<20} | {:>6.2} ± {:>5.2} | {:>6.2} ± {:>5.2} | {:>6.2} ± {:>5.2} | {:>6.2} ± {:>5.2} | {:>12}",
             result.strategy_name,
             result.metrics.avg_latency_ms,
+            result.metrics_std_dev.latency_std_dev,
             result.metrics.throughput_blocks_per_sec,
+            result.metrics_std_dev.throughput_std_dev,
             result.metrics.commit_rate,
+            result.metrics_std_dev.commit_rate_std_dev,
             result.metrics.error_rate,
+            result.metrics_std_dev.error_rate_std_dev,
             if result.metrics.data_integrity_maintained { "Yes" } else { "No" }
         );
     }
