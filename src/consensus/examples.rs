@@ -3,8 +3,22 @@
 //! This module demonstrates how to use various consensus mechanisms,
 //! including those that don't require majority voting.
 //! 
-//! Note: These are example functions for demonstration purposes.
-//! They are not used in the main application, which currently uses PBFT.
+//! ## Teaching Examples
+//! 
+//! Three comparison examples that keep ETL + block flow unchanged:
+//! 
+//! - `no_consensus_example.rs` - Example A: No-Consensus (Single Node Direct Commit)
+//!   - Understand consensus necessity vs cost
+//!   - Compare latency and safety differences with PBFT
+//! 
+//! - `simple_majority_example.rs` - Example B: Simple Majority Vote
+//!   - Simple voting simulation, cannot tolerate Byzantine
+//!   - Compare BFT advantages with PBFT
+//! 
+//! - `pbft_baseline_example.rs` - Example C: PBFT (Baseline)
+//!   - Keep current flow as comparison baseline
+
+// Examples have been moved to examples/ directory at project root
 
 use crate::consensus::*;
 use crate::consensus::algorithms::*;
@@ -85,9 +99,9 @@ pub async fn test_gossip_consensus() {
     let result = consensus.propose(&block).await.unwrap();
     
     match result {
-        ConsensusResult::Committed(_) => println!("✓ Block committed!"),
-        ConsensusResult::Pending => println!("⏳ Block pending..."),
-        ConsensusResult::Rejected(reason) => println!("✗ Block rejected: {}", reason),
+        ConsensusResult::Committed(_) => println!("Block committed!"),
+        ConsensusResult::Pending => println!("Block pending..."),
+        ConsensusResult::Rejected(reason) => println!("Block rejected: {}", reason),
     }
 }
 
@@ -119,7 +133,7 @@ pub async fn test_eventual_consensus() {
     
     match result {
         ConsensusResult::Committed(_) => {
-            println!("✓ Block committed after {:?}!", elapsed);
+            println!("Block committed after {:?}!", elapsed);
         },
         _ => println!("Unexpected result"),
     }
@@ -156,8 +170,8 @@ pub async fn test_quorumless_consensus() {
     let result = consensus.propose(&block).await.unwrap();
     
     match result {
-        ConsensusResult::Committed(_) => println!("✓ Block committed!"),
-        ConsensusResult::Pending => println!("⏳ Block pending (need more votes)..."),
-        ConsensusResult::Rejected(reason) => println!("✗ Block rejected: {}", reason),
+        ConsensusResult::Committed(_) => println!("Block committed!"),
+        ConsensusResult::Pending => println!("Block pending (need more votes)..."),
+        ConsensusResult::Rejected(reason) => println!("Block rejected: {}", reason),
     }
 }

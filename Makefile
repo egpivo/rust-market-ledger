@@ -78,9 +78,9 @@ install-env:
 	@echo "Development environment setup complete!"
 	@echo ""
 	@if command -v cargo &> /dev/null; then \
-		echo "✓ Rust/Cargo installed: $$(cargo --version)"; \
+		echo "Rust/Cargo installed: $$(cargo --version)"; \
 	else \
-		echo "⚠ Please restart your shell or run: source $$HOME/.cargo/env"; \
+		echo "Please restart your shell or run: source $$HOME/.cargo/env"; \
 	fi
 	@echo ""
 	@echo "Next steps:"

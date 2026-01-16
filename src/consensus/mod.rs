@@ -25,6 +25,12 @@ pub mod algorithms;
 // Examples
 pub mod examples;
 
+// Re-export comparison module for easy access
+pub use comparison::*;
+
+// Consensus comparison framework
+pub mod comparison;
+
 // Tests
 #[cfg(test)]
 #[path = "tests.rs"]
