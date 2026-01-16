@@ -2,6 +2,9 @@
 //! 
 //! This module demonstrates how to use various consensus mechanisms,
 //! including those that don't require majority voting.
+//! 
+//! Note: These are example functions for demonstration purposes.
+//! They are not used in the main application, which currently uses PBFT.
 
 use crate::consensus::*;
 use crate::consensus::algorithms::*;
@@ -9,6 +12,7 @@ use crate::etl::{Block, MarketData};
 use std::sync::Arc;
 
 /// Example: Compare different consensus algorithms
+#[allow(dead_code)] // Example code, not used in main application
 pub async fn compare_consensus_algorithms() {
     println!("\n=== Consensus Algorithm Comparison ===\n");
     
@@ -57,6 +61,7 @@ pub async fn compare_consensus_algorithms() {
 }
 
 /// Example: Test gossip consensus
+#[allow(dead_code)] // Example code, not used in main application
 pub async fn test_gossip_consensus() {
     println!("\n=== Testing Gossip Consensus ===\n");
     
@@ -87,6 +92,7 @@ pub async fn test_gossip_consensus() {
 }
 
 /// Example: Test eventual consistency
+#[allow(dead_code)] // Example code, not used in main application
 pub async fn test_eventual_consensus() {
     println!("\n=== Testing Eventual Consistency ===\n");
     
@@ -120,6 +126,7 @@ pub async fn test_eventual_consensus() {
 }
 
 /// Example: Test quorum-less consensus
+#[allow(dead_code)] // Example code, not used in main application
 pub async fn test_quorumless_consensus() {
     println!("\n=== Testing Quorum-less Consensus ===\n");
     

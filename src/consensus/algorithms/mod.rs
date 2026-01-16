@@ -8,6 +8,7 @@ pub mod pbft;
 pub mod gossip;
 pub mod eventual;
 pub mod quorumless;
+pub mod flexible_paxos;
 
 // Re-export PBFT types for backward compatibility
 pub use pbft_impl::{PBFTManager, PBFTMessage, MessageType};

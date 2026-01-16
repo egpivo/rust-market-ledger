@@ -10,11 +10,17 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 
 #[derive(Clone, Debug)]
+#[allow(dead_code)] // Reserved for future use or examples
 struct NodeWeight {
     node_id: usize,
     weight: f64, // Reputation/weight of the node
 }
 
+/// Quorum-less consensus with weighted voting
+/// 
+/// Note: This is implemented but not currently used in main.rs.
+/// It's available for demonstration and future use.
+#[allow(dead_code)] // Reserved for future use or examples
 pub struct QuorumlessConsensus {
     node_id: usize,
     node_weights: Arc<RwLock<HashMap<usize, f64>>>, // Node ID -> Weight
@@ -24,6 +30,7 @@ pub struct QuorumlessConsensus {
 }
 
 impl QuorumlessConsensus {
+    #[allow(dead_code)] // Reserved for future use or examples
     pub fn new(node_id: usize, threshold_weight: f64) -> Self {
         let mut weights = HashMap::new();
         // Initialize all nodes with equal weight (can be customized)
@@ -40,10 +47,12 @@ impl QuorumlessConsensus {
         }
     }
     
+    #[allow(dead_code)] // Reserved for future use or examples
     pub fn set_node_weight(&self, node_id: usize, weight: f64) {
         self.node_weights.write().insert(node_id, weight);
     }
     
+    #[allow(dead_code)] // Reserved for future use or examples
     fn calculate_total_weight(&self, block_index: u64) -> f64 {
         let votes = self.votes.read();
         let weights = self.node_weights.read();

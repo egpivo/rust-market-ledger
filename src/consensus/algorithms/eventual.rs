@@ -18,6 +18,11 @@ pub struct EventualConsensus {
 }
 
 impl EventualConsensus {
+    /// Create a new EventualConsensus instance
+    /// 
+    /// Note: This is implemented but not currently used in main.rs.
+    /// It's available for demonstration and future use.
+    #[allow(dead_code)] // Reserved for future use or examples
     pub fn new(node_id: usize, confirmation_delay_ms: u64, min_confirmations: usize) -> Self {
         Self {
             node_id,

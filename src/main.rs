@@ -5,6 +5,8 @@ mod logger;
 
 use chrono::prelude::*;
 use consensus::algorithms::{MessageType, PBFTManager, PBFTMessage};
+use consensus::{ConsensusAlgorithm, ConsensusResult};
+use consensus::algorithms::{gossip, eventual, quorumless, flexible_paxos, pbft::PBFTConsensus};
 use network::{broadcast_message, NetworkHandler, start_server};
 use etl::{Block, MarketData};
 use etl::load::DatabaseManager;
@@ -15,6 +17,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::env;
 use std::thread;
+use std::io::{self, Write};
 use actix_rt;
 use tracing::{info, warn, error, debug};
 
@@ -192,6 +195,113 @@ mod tests {
 }
 
 
+/// Consensus algorithm selection
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum ConsensusType {
+    PBFT,
+    Gossip,
+    Eventual,
+    Quorumless,
+    FlexiblePaxos,
+}
+
+impl ConsensusType {
+    fn from_str(s: &str) -> Option<Self> {
+        match s.to_lowercase().as_str() {
+            "pbft" | "1" => Some(ConsensusType::PBFT),
+            "gossip" | "2" => Some(ConsensusType::Gossip),
+            "eventual" | "3" => Some(ConsensusType::Eventual),
+            "quorumless" | "4" => Some(ConsensusType::Quorumless),
+            "flexible_paxos" | "flexiblepaxos" | "fpaxos" | "paxos" | "5" => Some(ConsensusType::FlexiblePaxos),
+            _ => None,
+        }
+    }
+    
+    fn name(&self) -> &'static str {
+        match self {
+            ConsensusType::PBFT => "PBFT",
+            ConsensusType::Gossip => "Gossip",
+            ConsensusType::Eventual => "Eventual Consistency",
+            ConsensusType::Quorumless => "Quorum-less (Weighted)",
+            ConsensusType::FlexiblePaxos => "Flexible Paxos",
+        }
+    }
+    
+    fn description(&self) -> &'static str {
+        match self {
+            ConsensusType::PBFT => "Byzantine fault tolerance with majority voting (2f+1 out of 3f+1)",
+            ConsensusType::Gossip => "Epidemic/gossip protocol, no majority voting required",
+            ConsensusType::Eventual => "Time-based commitment, no majority voting required",
+            ConsensusType::Quorumless => "Weighted voting based on node reputation, no majority voting",
+            ConsensusType::FlexiblePaxos => "Flexible quorum Paxos: Q1 (phase-1) intersects with previous Q2 (phase-2)",
+        }
+    }
+}
+
+/// Display consensus algorithm selection menu
+fn show_consensus_menu() {
+    println!("\n{}", "=".repeat(70));
+    println!("  Consensus Algorithm Selection");
+    println!("{}", "=".repeat(70));
+    println!();
+    println!("  1. PBFT (Practical Byzantine Fault Tolerance)");
+    println!("     - {}", ConsensusType::PBFT.description());
+    println!();
+    println!("  2. Gossip Protocol");
+    println!("     - {}", ConsensusType::Gossip.description());
+    println!();
+    println!("  3. Eventual Consistency");
+    println!("     - {}", ConsensusType::Eventual.description());
+    println!();
+    println!("  4. Quorum-less (Weighted Voting)");
+    println!("     - {}", ConsensusType::Quorumless.description());
+    println!();
+    println!("  5. Flexible Paxos");
+    println!("     - {}", ConsensusType::FlexiblePaxos.description());
+    println!();
+    println!("{}", "=".repeat(70));
+    print!("\n  Select consensus algorithm (1-5) or press Enter for PBFT (default): ");
+    io::stdout().flush().unwrap();
+}
+
+/// Get consensus algorithm selection from user
+fn get_consensus_selection() -> ConsensusType {
+    // Check command line arguments first
+    let args: Vec<String> = env::args().collect();
+    for arg in &args {
+        if arg.starts_with("--consensus=") {
+            if let Some(value) = arg.split('=').nth(1) {
+                if let Some(consensus) = ConsensusType::from_str(value) {
+                    return consensus;
+                }
+            }
+        }
+        if arg == "--consensus" || arg == "-c" {
+            if let Some(next_arg) = args.iter().skip_while(|a| a != &arg).nth(1) {
+                if let Some(consensus) = ConsensusType::from_str(next_arg) {
+                    return consensus;
+                }
+            }
+        }
+    }
+    
+    // If no command line argument, show interactive menu
+    show_consensus_menu();
+    
+    let mut input = String::new();
+    match io::stdin().read_line(&mut input) {
+        Ok(_) => {
+            let trimmed = input.trim();
+            if trimmed.is_empty() {
+                ConsensusType::PBFT // Default
+            } else {
+                ConsensusType::from_str(trimmed).unwrap_or(ConsensusType::PBFT)
+            }
+        }
+        Err(_) => ConsensusType::PBFT, // Default on error
+    }
+}
+
 async fn run_pbft_consensus(
     block: Block,
     pbft: Arc<PBFTManager>,
@@ -234,11 +344,126 @@ async fn run_pbft_consensus(
     Ok(None)
 }
 
+/// Run consensus using the selected algorithm
+async fn run_consensus(
+    consensus_type: ConsensusType,
+    block: Block,
+    node_id: usize,
+    total_nodes: usize,
+    node_addresses: &[String],
+    port: u16,
+    pbft: Arc<PBFTManager>,
+) -> Result<Option<Block>, Box<dyn Error>> {
+    match consensus_type {
+        ConsensusType::PBFT => {
+            run_pbft_consensus(block, pbft, node_addresses, port).await
+        }
+        ConsensusType::Gossip => {
+            let consensus = Arc::new(gossip::GossipConsensus::new(node_id, 3, 2));
+            match consensus.propose(&block).await {
+                Ok(ConsensusResult::Committed(_)) => {
+                    info!(block_index = block.index, "Gossip: Block committed");
+                    Ok(Some(block))
+                }
+                Ok(ConsensusResult::Pending) => {
+                    warn!(block_index = block.index, "Gossip: Block pending");
+                    Ok(None)
+                }
+                Ok(ConsensusResult::Rejected(reason)) => {
+                    warn!(block_index = block.index, reason = %reason, "Gossip: Block rejected");
+                    Ok(None)
+                }
+                Err(e) => Err(e),
+            }
+        }
+        ConsensusType::Eventual => {
+            let consensus = Arc::new(eventual::EventualConsensus::new(node_id, 1000, 2));
+            match consensus.propose(&block).await {
+                Ok(ConsensusResult::Committed(_)) => {
+                    info!(block_index = block.index, "Eventual: Block committed");
+                    Ok(Some(block))
+                }
+                Ok(ConsensusResult::Pending) => {
+                    warn!(block_index = block.index, "Eventual: Block pending");
+                    Ok(None)
+                }
+                Ok(ConsensusResult::Rejected(reason)) => {
+                    warn!(block_index = block.index, reason = %reason, "Eventual: Block rejected");
+                    Ok(None)
+                }
+                Err(e) => Err(e),
+            }
+        }
+        ConsensusType::Quorumless => {
+            let consensus = Arc::new(quorumless::QuorumlessConsensus::new(node_id, 5.0));
+            // Set some default weights for demo
+            consensus.set_node_weight(0, 2.0);
+            consensus.set_node_weight(1, 2.0);
+            consensus.set_node_weight(2, 1.5);
+            consensus.set_node_weight(3, 1.5);
+            
+            match consensus.propose(&block).await {
+                Ok(ConsensusResult::Committed(_)) => {
+                    info!(block_index = block.index, "Quorumless: Block committed");
+                    Ok(Some(block))
+                }
+                Ok(ConsensusResult::Pending) => {
+                    warn!(block_index = block.index, "Quorumless: Block pending (need more votes)");
+                    Ok(None)
+                }
+                Ok(ConsensusResult::Rejected(reason)) => {
+                    warn!(block_index = block.index, reason = %reason, "Quorumless: Block rejected");
+                    Ok(None)
+                }
+                Err(e) => Err(e),
+            }
+        }
+        ConsensusType::FlexiblePaxos => {
+            // For 4 nodes: Q1=3 (majority), Q2=2 (flexible, but Q1+Q2=5 > 4 ensures intersection)
+            let q1_size = (total_nodes + 1) / 2 + 1; // Majority + 1 for safety
+            let q2_size = total_nodes / 2; // Can be smaller
+            let consensus = Arc::new(flexible_paxos::FlexiblePaxos::new(node_id, total_nodes, q1_size, q2_size));
+            
+            match consensus.propose(&block).await {
+                Ok(ConsensusResult::Committed(committed_block)) => {
+                    info!(
+                        block_index = committed_block.index,
+                        q1 = q1_size,
+                        q2 = q2_size,
+                        "Flexible Paxos: Block committed"
+                    );
+                    Ok(Some(committed_block))
+                }
+                Ok(ConsensusResult::Pending) => {
+                    warn!(
+                        block_index = block.index,
+                        "Flexible Paxos: Block pending (quorum not reached)"
+                    );
+                    Ok(None)
+                }
+                Ok(ConsensusResult::Rejected(reason)) => {
+                    warn!(block_index = block.index, reason = %reason, "Flexible Paxos: Block rejected");
+                    Ok(None)
+                }
+                Err(e) => Err(e),
+            }
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     // Initialize logger first (before any other operations)
     // Use detailed format for demo (includes hostname and memory)
     logger::init_logger_detailed();
+    
+    // Get consensus algorithm selection
+    let consensus_type = get_consensus_selection();
+    info!(
+        consensus = consensus_type.name(),
+        description = consensus_type.description(),
+        "Selected consensus algorithm"
+    );
     
     let args: Vec<String> = env::args().collect();
     let node_id: usize = args.get(1).and_then(|s| s.parse().ok()).unwrap_or(0);
@@ -265,9 +490,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let db = DatabaseManager::new(&db_path)?;
     db.init()?;
     
+    // Initialize PBFT (always needed for network server, even if not used for consensus)
     let pbft = Arc::new(PBFTManager::new(node_id, total_nodes, node_addresses.clone()));
     let pbft_clone = pbft.clone();
     
+    // Start network server (only needed for PBFT, but we'll start it anyway for compatibility)
     let network_handler = Arc::new(NetworkHandler::new(move |msg: PBFTMessage| {
         let pbft = pbft_clone.clone();
         match msg.msg_type {
@@ -280,13 +507,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let server_port = port;
     let handler_for_server = network_handler.clone();
     
-    thread::spawn(move || {
-        actix_rt::System::new().block_on(async {
-            let _ = start_server(server_port, handler_for_server).await;
+    // Only start network server for PBFT
+    if consensus_type == ConsensusType::PBFT {
+        thread::spawn(move || {
+            actix_rt::System::new().block_on(async {
+                let _ = start_server(server_port, handler_for_server).await;
+            });
         });
-    });
-    
-    tokio::time::sleep(Duration::from_millis(500)).await;
+        tokio::time::sleep(Duration::from_millis(500)).await;
+    }
     
     // Initialize ETL components
     let extractor = Extractor::new()?;
@@ -311,7 +540,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     
     for round in 0..3 {
         info!("{}", "=".repeat(60));
-        info!(round = round + 1, "Starting ETL + PBFT Consensus");
+        info!(
+            round = round + 1,
+            consensus = consensus_type.name(),
+            "Starting ETL + Consensus"
+        );
         
         // Extract: Get market data from API or offline source
         let extract_result = if use_offline {
@@ -383,8 +616,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             "Transform: Block created"
                         );
                         
-                        // PBFT Consensus
-                        match run_pbft_consensus(new_block.clone(), pbft.clone(), &node_addresses, port).await {
+                        // Run consensus with selected algorithm
+                        match run_consensus(
+                            consensus_type,
+                            new_block.clone(),
+                            node_id,
+                            total_nodes,
+                            &node_addresses,
+                            port,
+                            pbft.clone(),
+                        ).await {
                             Ok(Some(committed_block)) => {
                                 // Load: Save to database
                                 match db.save_block(&committed_block) {
@@ -393,6 +634,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                         last_timestamp = Some(committed_block.timestamp);
                                         info!(
                                             block_index = committed_block.index,
+                                            consensus = consensus_type.name(),
                                             "Load: Block committed and saved"
                                         );
                                     }
@@ -403,11 +645,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                 }
                             }
                             Ok(None) => {
-                                warn!(block_index = new_block.index, "PBFT: Consensus failed");
+                                warn!(
+                                    block_index = new_block.index,
+                                    consensus = consensus_type.name(),
+                                    "Consensus failed or pending"
+                                );
                                 last_index -= 1;
                             }
                             Err(e) => {
-                                error!(error = %e, "PBFT: Error during consensus");
+                                error!(
+                                    error = %e,
+                                    consensus = consensus_type.name(),
+                                    "Error during consensus"
+                                );
                                 last_index -= 1;
                             }
                         }

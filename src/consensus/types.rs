@@ -4,6 +4,11 @@ use crate::etl::Block;
 use serde::{Deserialize, Serialize};
 
 /// Consensus result
+/// 
+/// Note: This is used in the ConsensusAlgorithm trait and tests.
+/// Currently, main.rs uses PBFT directly, but this type is reserved for
+/// future use with the trait-based approach.
+#[allow(dead_code)] // Used in trait definitions and tests
 #[derive(Debug, Clone)]
 pub enum ConsensusResult {
     /// Consensus reached
@@ -15,6 +20,11 @@ pub enum ConsensusResult {
 }
 
 /// Consensus requirements
+/// 
+/// Note: This is used in the ConsensusAlgorithm trait and tests.
+/// Currently, main.rs uses PBFT directly, but this type is reserved for
+/// future use with the trait-based approach.
+#[allow(dead_code)] // Used in trait definitions and tests
 #[derive(Debug, Clone)]
 pub struct ConsensusRequirements {
     /// Whether majority voting is required

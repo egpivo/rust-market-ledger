@@ -6,6 +6,11 @@ use async_trait::async_trait;
 use std::error::Error;
 
 /// Consensus algorithm trait - allows plugging in different consensus mechanisms
+/// 
+/// Note: This trait is defined for demonstration purposes and future extensibility.
+/// Currently, main.rs uses PBFT directly, but this trait allows switching between
+/// different consensus algorithms.
+#[allow(dead_code)] // Reserved for future use or examples
 #[async_trait]
 pub trait ConsensusAlgorithm: Send + Sync {
     /// Propose a block for consensus
