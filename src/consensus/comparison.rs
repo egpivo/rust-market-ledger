@@ -416,12 +416,12 @@ pub async fn benchmark_consensus_strategy(
     // Quorum-less: any node can propose but weighted -> medium randomness
     // Flexible Paxos: has proposer selection -> medium-low randomness
     let block_proposal_randomness = match strategy.name() {
-        "PBFT" => Some(0.3),              // Deterministic primary selection
-        "Gossip Protocol" => Some(0.9),   // High randomness in gossip propagation
-        "Eventual Consistency" => Some(0.8), // Any node can propose
+        "PBFT" => Some(0.3),                   // Deterministic primary selection
+        "Gossip Protocol" => Some(0.9),        // High randomness in gossip propagation
+        "Eventual Consistency" => Some(0.8),   // Any node can propose
         "Quorum-less (Weighted)" => Some(0.6), // Weighted but any node can propose
-        "Flexible Paxos" => Some(0.5),    // Proposer selection but more flexible than PBFT
-        _ => Some(0.7),                   // Default for other strategies
+        "Flexible Paxos" => Some(0.5),         // Proposer selection but more flexible than PBFT
+        _ => Some(0.7),                        // Default for other strategies
     };
 
     // Hashing power / token concentration / wealth distribution:
@@ -430,7 +430,7 @@ pub async fn benchmark_consensus_strategy(
     let hashing_power_distribution = None;
     let token_concentration = None;
     let wealth_distribution = None;
-    
+
     // Geographical diversity: not applicable in single-machine simulation
     // Would require actual node location data
     let geographical_diversity = None;
