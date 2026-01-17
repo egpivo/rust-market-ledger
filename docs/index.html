@@ -40,16 +40,6 @@
             font-size: 1.2em;
         }
         
-        .badge {
-            display: inline-block;
-            padding: 5px 10px;
-            background: #3498db;
-            color: white;
-            border-radius: 4px;
-            font-size: 0.9em;
-            margin-bottom: 30px;
-        }
-        
         .section {
             margin: 40px 0;
             padding: 20px;
@@ -269,21 +259,23 @@
             margin-left: 20px;
             margin-top: 10px;
         }
+        
+        .data-source {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Rust Market Ledger</h1>
         <p class="subtitle">Consensus Algorithm Comparison</p>
-        <span class="badge">Demonstration Repository</span>
         
         <div class="section">
-            <h2>Overview</h2>
-            <p>This page demonstrates the comparison of different consensus algorithms in a market ledger context.</p>
-        </div>
-        
-        <div class="section">
-            <h2>1. Strategy Query Panel</h2>
+            <h2>Strategy Query Panel</h2>
             <div class="strategy-panel">
                 <select id="strategySelect" class="strategy-select">
                     <option value="">Select a consensus strategy...</option>
@@ -325,11 +317,15 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="data-source">
+                <strong>Data Source:</strong> Simulated consensus execution on 100 blocks per round, 5 rounds per strategy. 
+                Metrics are calculated from execution time and commit status. Trilemma scores are qualitative assessments based on algorithm characteristics.
+            </div>
         </div>
         
         <div class="section">
-            <h2>2. Parameter Display Area</h2>
-            <p>Fixed parameters used in the comparison:</p>
+            <h2>Parameters</h2>
             <div class="params-grid">
                 <div class="param-item">
                     <strong>Blocks per round</strong>
@@ -343,9 +339,9 @@
                     <strong>Total nodes</strong>
                     <span class="value">4</span>
                 </div>
-                <div class="param-item">
+                <div class="param-item>
                     <strong>PBFT Quorum</strong>
-                    <span class="value">3 (2f+1, f=1)</span>
+                    <span class="value">3 (2f+1)</span>
                 </div>
                 <div class="param-item">
                     <strong>Gossip Fanout</strong>
@@ -356,99 +352,75 @@
                     <span class="value">500ms</span>
                 </div>
                 <div class="param-item">
-                    <strong>Eventual Threshold</strong>
-                    <span class="value">2</span>
-                </div>
-                <div class="param-item">
                     <strong>Quorum-less Threshold</strong>
                     <span class="value">5.0</span>
                 </div>
                 <div class="param-item">
-                    <strong>Flexible Paxos Q1</strong>
-                    <span class="value">2</span>
-                </div>
-                <div class="param-item">
-                    <strong>Flexible Paxos Q2</strong>
-                    <span class="value">3</span>
+                    <strong>Flexible Paxos Q1/Q2</strong>
+                    <span class="value">2/3</span>
                 </div>
             </div>
         </div>
         
         <div class="section">
-            <h2>3. Results vs. Limitations</h2>
+            <h2>Results vs. Limitations</h2>
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('results')">Experimental Results</button>
+                <button class="tab active" onclick="switchTab('results')">Results</button>
                 <button class="tab" onclick="switchTab('limitations')">Limitations</button>
             </div>
             
             <div id="resultsTab" class="tab-content active">
-                <div class="section">
-                    <h2>Consensus Algorithms Compared</h2>
-                    <ul style="margin-left: 20px; line-height: 2;">
-                        <li><strong>PBFT</strong> - Practical Byzantine Fault Tolerance (BFT, requires majority)</li>
-                        <li><strong>Gossip</strong> - Epidemic/gossip protocol (no majority voting)</li>
-                        <li><strong>Eventual</strong> - Time-based commitment (eventual consistency)</li>
-                        <li><strong>Quorum-less</strong> - Weighted voting based on reputation</li>
-                        <li><strong>Flexible Paxos</strong> - Flexible quorum Paxos (Q1 intersects with previous Q2)</li>
-                    </ul>
-                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Strategy</th>
+                            <th>Latency (ms)</th>
+                            <th>Throughput (blocks/sec)</th>
+                            <th>Commit Rate (%)</th>
+                            <th>Error Rate (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="metric">PBFT</td>
+                            <td class="value">1500.0 ± 50.0</td>
+                            <td class="value">66.67</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Gossip</td>
+                            <td class="value">300.0 ± 10.0</td>
+                            <td class="value">333.33</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Eventual</td>
+                            <td class="value">500.0 ± 5.0</td>
+                            <td class="value">200.0</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Quorum-less</td>
+                            <td class="value">50.0 ± 2.0</td>
+                            <td class="value">2000.0</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Flexible Paxos</td>
+                            <td class="value">800.0 ± 30.0</td>
+                            <td class="value">125.0</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                    </tbody>
+                </table>
                 
                 <div class="section">
-                    <h2>Performance Metrics</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Strategy</th>
-                                <th>Latency (ms)</th>
-                                <th>Throughput (blocks/sec)</th>
-                                <th>Commit Rate (%)</th>
-                                <th>Error Rate (%)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="metric">PBFT</td>
-                                <td class="value">1500.0 ± 50.0</td>
-                                <td class="value">66.67</td>
-                                <td class="value">100.0</td>
-                                <td class="value">0.0</td>
-                            </tr>
-                            <tr>
-                                <td class="metric">Gossip</td>
-                                <td class="value">300.0 ± 10.0</td>
-                                <td class="value">333.33</td>
-                                <td class="value">100.0</td>
-                                <td class="value">0.0</td>
-                            </tr>
-                            <tr>
-                                <td class="metric">Eventual</td>
-                                <td class="value">500.0 ± 5.0</td>
-                                <td class="value">200.0</td>
-                                <td class="value">100.0</td>
-                                <td class="value">0.0</td>
-                            </tr>
-                            <tr>
-                                <td class="metric">Quorum-less</td>
-                                <td class="value">50.0 ± 2.0</td>
-                                <td class="value">2000.0</td>
-                                <td class="value">100.0</td>
-                                <td class="value">0.0</td>
-                            </tr>
-                            <tr>
-                                <td class="metric">Flexible Paxos</td>
-                                <td class="value">800.0 ± 30.0</td>
-                                <td class="value">125.0</td>
-                                <td class="value">100.0</td>
-                                <td class="value">0.0</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="section">
-                    <h2>Blockchain Trilemma Scores</h2>
-                    <p>The blockchain trilemma states that you can optimize for at most two of: Decentralization, Security, Scalability.</p>
-                    
+                    <h3>Trilemma Scores</h3>
                     <div class="trilemma-scores">
                         <div class="trilemma-card">
                             <h4>PBFT</h4>
@@ -458,7 +430,6 @@
                             <div class="score-bar"><div class="score-fill" style="width: 100%"></div></div>
                             <p><strong>Scalability:</strong> 2.0/5.0</p>
                             <div class="score-bar"><div class="score-fill" style="width: 40%"></div></div>
-                            <p style="margin-top: 10px; font-weight: 600;">Sacrifice: Scalability</p>
                         </div>
                         
                         <div class="trilemma-card">
@@ -469,7 +440,6 @@
                             <div class="score-bar"><div class="score-fill" style="width: 60%"></div></div>
                             <p><strong>Scalability:</strong> 5.0/5.0</p>
                             <div class="score-bar"><div class="score-fill" style="width: 100%"></div></div>
-                            <p style="margin-top: 10px; font-weight: 600;">Sacrifice: Security</p>
                         </div>
                         
                         <div class="trilemma-card">
@@ -480,7 +450,6 @@
                             <div class="score-bar"><div class="score-fill" style="width: 40%"></div></div>
                             <p><strong>Scalability:</strong> 4.0/5.0</p>
                             <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
-                            <p style="margin-top: 10px; font-weight: 600;">Sacrifice: Security</p>
                         </div>
                         
                         <div class="trilemma-card">
@@ -491,7 +460,6 @@
                             <div class="score-bar"><div class="score-fill" style="width: 70%"></div></div>
                             <p><strong>Scalability:</strong> 4.5/5.0</p>
                             <div class="score-bar"><div class="score-fill" style="width: 90%"></div></div>
-                            <p style="margin-top: 10px; font-weight: 600;">Balanced</p>
                         </div>
                         
                         <div class="trilemma-card">
@@ -502,51 +470,28 @@
                             <div class="score-bar"><div class="score-fill" style="width: 90%"></div></div>
                             <p><strong>Scalability:</strong> 3.0/5.0</p>
                             <div class="score-bar"><div class="score-fill" style="width: 60%"></div></div>
-                            <p style="margin-top: 10px; font-weight: 600;">Sacrifice: Scalability</p>
                         </div>
                     </div>
-                </div>
-                
-                <div class="section">
-                    <h2>Key Insights</h2>
-                    <ul style="margin-left: 20px; line-height: 2;">
-                        <li><strong>PBFT</strong> provides the highest security but sacrifices scalability due to its high latency and low throughput.</li>
-                        <li><strong>Gossip</strong> excels in decentralization and scalability but has lower security guarantees.</li>
-                        <li><strong>Eventual Consistency</strong> offers a balance between decentralization and scalability but trades off security.</li>
-                        <li><strong>Quorum-less</strong> provides a balanced approach across all three dimensions.</li>
-                        <li><strong>Flexible Paxos</strong> offers strong security with better scalability than PBFT through flexible quorums.</li>
-                    </ul>
                 </div>
             </div>
             
             <div id="limitationsTab" class="tab-content">
                 <div class="limitations">
-                    <h3>Experimental Limitations</h3>
-                    <p>This comparison is a demonstration with the following limitations:</p>
+                    <h3>Limitations</h3>
                     <ul>
-                        <li><strong>Simulated Network:</strong> All consensus algorithms run on a single machine. Network latency, packet loss, and real-world network conditions are not accurately represented.</li>
-                        <li><strong>Simulated Data:</strong> Market data is generated offline/mock data, not from real market feeds.</li>
-                        <li><strong>Simplified Consensus:</strong> Some consensus algorithms use simplified implementations for demonstration purposes, not production-ready code.</li>
-                        <li><strong>Fixed Parameters:</strong> All strategies use the same fixed parameters (blocks, rounds, nodes) for fair comparison, but real-world scenarios may vary.</li>
-                        <li><strong>No Byzantine Faults:</strong> The experiments do not simulate actual Byzantine (malicious) nodes, only the consensus protocol mechanics.</li>
-                        <li><strong>Single Machine:</strong> All nodes run on the same machine, so true distributed system characteristics (network partitions, node failures) are not tested.</li>
+                        <li>Simulated network: single machine execution</li>
+                        <li>Simulated data: mock market data, not real feeds</li>
+                        <li>Simplified implementations for demonstration</li>
+                        <li>No actual Byzantine faults tested</li>
                     </ul>
-                    <p style="margin-top: 15px;"><strong>Purpose:</strong> This demonstration is designed to show the conceptual differences and trade-offs between consensus algorithms, not to provide production-ready performance benchmarks.</p>
                 </div>
             </div>
         </div>
         
-        <div class="section">
-            <h2>Examples</h2>
-            <p>For detailed examples and comparisons, see <a href="https://github.com/egpivo/rust-market-ledger/tree/main/examples">examples/README.md</a>.</p>
-        </div>
-        
         <footer>
             <p>
-                <a href="https://github.com/egpivo/rust-market-ledger">GitHub Repository</a>
-            </p>
-            <p style="margin-top: 10px; font-size: 0.9em;">
-                Rust Market Ledger - Consensus Algorithm Comparison Demo
+                <a href="https://github.com/egpivo/rust-market-ledger">GitHub Repository</a> | 
+                <a href="https://github.com/egpivo/rust-market-ledger/tree/main/examples">Examples</a>
             </p>
         </footer>
     </div>
