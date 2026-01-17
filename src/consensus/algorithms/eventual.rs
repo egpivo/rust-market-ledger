@@ -1,5 +1,4 @@
-//! Eventual Consistency consensus - no voting, just time-based or count-based commitment
-//! Suitable for systems where eventual consistency is acceptable
+//! Eventual Consistency consensus
 
 use crate::consensus::{ConsensusAlgorithm, ConsensusMessage, ConsensusResult, ConsensusRequirements};
 use crate::etl::Block;
@@ -13,16 +12,12 @@ use std::time::Duration;
 pub struct EventualConsensus {
     node_id: usize,
     committed: Arc<RwLock<HashSet<u64>>>,
-    confirmation_delay_ms: u64, // Time to wait before committing
-    min_confirmations: usize, // Minimum number of nodes that must have seen the block
+    confirmation_delay_ms: u64,
+    min_confirmations: usize,
 }
 
 impl EventualConsensus {
-    /// Create a new EventualConsensus instance
-    /// 
-    /// Note: This is implemented but not currently used in main.rs.
-    /// It's available for demonstration and future use.
-    #[allow(dead_code)] // Reserved for future use or examples
+    #[allow(dead_code)]
     pub fn new(node_id: usize, confirmation_delay_ms: u64, min_confirmations: usize) -> Self {
         Self {
             node_id,
@@ -36,8 +31,6 @@ impl EventualConsensus {
 #[async_trait]
 impl ConsensusAlgorithm for EventualConsensus {
     async fn propose(&self, block: &Block) -> Result<ConsensusResult, Box<dyn Error>> {
-        // In eventual consistency, we commit after a delay
-        // No voting required - just wait for time-based commitment
         tokio::time::sleep(Duration::from_millis(self.confirmation_delay_ms)).await;
         
         let mut committed = self.committed.write();
@@ -47,21 +40,11 @@ impl ConsensusAlgorithm for EventualConsensus {
     }
     
     async fn handle_message(&self, _message: ConsensusMessage) -> Result<ConsensusResult, Box<dyn Error>> {
-        // Track that we've seen this block
-        // In eventual consistency, we just need to see it from enough nodes
-        // (not majority, just a threshold)
-        
-        // For simplicity, commit after receiving from min_confirmations nodes
-        // In a real implementation, you'd track this per block
         Ok(ConsensusResult::Pending)
     }
     
-    fn is_committed(&self, block_index: u64) -> bool {
-        self.committed.read().contains(&block_index)
-    }
-    
     fn name(&self) -> &str {
-        "Eventual"
+        "Eventual Consistency"
     }
     
     fn requirements(&self) -> ConsensusRequirements {
@@ -69,9 +52,14 @@ impl ConsensusAlgorithm for EventualConsensus {
             requires_majority: false,
             min_nodes: None,
             description: format!(
-                "Eventual consistency - commits after {}ms delay, {} confirmations",
+                "Eventual consistency: {}ms delay, {} min confirmations, no majority voting",
                 self.confirmation_delay_ms, self.min_confirmations
             ),
         }
+    }
+    
+    fn is_committed(&self, block_index: u64) -> bool {
+        let committed = self.committed.read();
+        committed.contains(&block_index)
     }
 }

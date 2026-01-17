@@ -1,27 +1,4 @@
 //! Consensus algorithm comparison and benchmarking
-//! 
-//! This module provides a framework for comparing different consensus algorithms
-//! while keeping the ETL + block generation flow unchanged.
-//! 
-//! The key design is to abstract consensus as a simple strategy that can be swapped
-//! without changing the rest of the system.
-//! 
-//! ## Usage Example
-//! 
-//! ```rust
-//! use crate::consensus::comparison::*;
-//! 
-//! // Create strategies
-//! let strategies = vec![
-//!     Arc::new(NoConsensusStrategy::new()),
-//!     Arc::new(SimpleMajorityStrategy::new(0, 4)),
-//!     Arc::new(SimplifiedPoWStrategy::new(2)),
-//! ];
-//! 
-//! // Compare on the same block
-//! let results = compare_consensus_strategies(&block, strategies).await;
-//! print_comparison_results(&results);
-//! ```
 
 use crate::etl::Block;
 use crate::consensus::{ConsensusResult, ConsensusRequirements};
@@ -30,37 +7,14 @@ use std::error::Error;
 use std::sync::Arc;
 use std::time::Instant;
 
-/// Simple consensus strategy trait
-/// 
-/// This is a simplified abstraction that focuses on the core consensus operation:
-/// given a block, determine if it reaches consensus and should be committed.
 #[async_trait]
 pub trait ConsensusStrategy: Send + Sync {
-    /// Execute consensus on a block
-    /// 
-    /// Returns:
-    /// - `Some(Block)` if consensus is reached and block should be committed
-    /// - `None` if consensus failed or is pending
     async fn execute(&self, block: &Block) -> Result<Option<Block>, Box<dyn Error>>;
-    
-    /// Get the strategy name
     fn name(&self) -> &str;
-    
-    /// Get consensus requirements
     fn requirements(&self) -> ConsensusRequirements;
-    
-    /// Check if a block index is committed
     fn is_committed(&self, block_index: u64) -> bool;
 }
 
-// ============================================================================
-// Strategy Implementations
-// ============================================================================
-
-/// No-Consensus Strategy: Single node confirmation
-/// 
-/// This is the simplest "consensus" - just accept the block immediately.
-/// Useful for single-node scenarios or testing.
 pub struct NoConsensusStrategy {
     committed: Arc<parking_lot::RwLock<std::collections::HashSet<u64>>>,
 }
@@ -76,7 +30,6 @@ impl NoConsensusStrategy {
 #[async_trait]
 impl ConsensusStrategy for NoConsensusStrategy {
     async fn execute(&self, block: &Block) -> Result<Option<Block>, Box<dyn Error>> {
-        // Immediately commit without any consensus
         let mut committed = self.committed.write();
         committed.insert(block.index);
         Ok(Some(block.clone()))
@@ -100,10 +53,6 @@ impl ConsensusStrategy for NoConsensusStrategy {
     }
 }
 
-/// Simple Majority Voting Strategy (Non-BFT)
-/// 
-/// Simple majority voting without Byzantine fault tolerance.
-/// Requires (n/2 + 1) votes to commit.
 pub struct SimpleMajorityStrategy {
     node_id: usize,
     total_nodes: usize,
@@ -152,7 +101,7 @@ impl ConsensusStrategy for SimpleMajorityStrategy {
             committed.insert(block.index);
             Ok(Some(block.clone()))
         } else {
-            Ok(None) // Need more votes
+            Ok(None)
         }
     }
     
@@ -178,12 +127,8 @@ impl ConsensusStrategy for SimpleMajorityStrategy {
     }
 }
 
-/// Simplified Proof-of-Work (PoW) Strategy
-/// 
-/// A simplified PoW simulation that requires finding a nonce
-/// that produces a hash with a certain number of leading zeros.
 pub struct SimplifiedPoWStrategy {
-    difficulty: usize, // Number of leading zeros required
+    difficulty: usize,
     committed: Arc<parking_lot::RwLock<std::collections::HashSet<u64>>>,
 }
 
@@ -198,7 +143,6 @@ impl SimplifiedPoWStrategy {
     fn mine_block(&self, block: &mut Block) {
         let target_prefix = "0".repeat(self.difficulty);
         
-        // Simple mining: try nonces until we find one that works
         loop {
             block.calculate_hash_with_nonce();
             if block.hash.starts_with(&target_prefix) {
@@ -206,7 +150,6 @@ impl SimplifiedPoWStrategy {
             }
             block.nonce += 1;
             
-            // Safety limit to prevent infinite loop in demo
             if block.nonce > 100000 {
                 break;
             }
@@ -219,17 +162,15 @@ impl ConsensusStrategy for SimplifiedPoWStrategy {
     async fn execute(&self, block: &Block) -> Result<Option<Block>, Box<dyn Error>> {
         let mut block_to_mine = block.clone();
         
-        // Mine the block (find valid nonce)
         self.mine_block(&mut block_to_mine);
         
-        // Check if we found a valid hash
         let target_prefix = "0".repeat(self.difficulty);
         if block_to_mine.hash.starts_with(&target_prefix) {
             let mut committed = self.committed.write();
             committed.insert(block_to_mine.index);
             Ok(Some(block_to_mine))
         } else {
-            Ok(None) // Mining failed (shouldn't happen with our safety limit)
+            Ok(None)
         }
     }
     
@@ -254,11 +195,6 @@ impl ConsensusStrategy for SimplifiedPoWStrategy {
     }
 }
 
-// ============================================================================
-// Adapter: Wrap existing ConsensusAlgorithm as ConsensusStrategy
-// ============================================================================
-
-/// Adapter to use existing ConsensusAlgorithm implementations as ConsensusStrategy
 pub struct ConsensusAlgorithmAdapter {
     algorithm: Arc<dyn crate::consensus::ConsensusAlgorithm>,
 }
@@ -292,11 +228,6 @@ impl ConsensusStrategy for ConsensusAlgorithmAdapter {
     }
 }
 
-// ============================================================================
-// Comparison Framework
-// ============================================================================
-
-/// Consensus comparison result with detailed metrics
 #[derive(Debug, Clone)]
 pub struct ConsensusComparisonResult {
     pub strategy_name: String,
@@ -305,10 +236,9 @@ pub struct ConsensusComparisonResult {
     pub execution_time_ms: u64,
     pub requirements: ConsensusRequirements,
     pub error_occurred: bool,
-    pub data_integrity: bool, // Whether data entered chain even on error
+    pub data_integrity: bool,
 }
 
-/// Detailed metrics for consensus performance
 #[derive(Debug, Clone)]
 pub struct ConsensusMetrics {
     pub strategy_name: String,
@@ -320,12 +250,11 @@ pub struct ConsensusMetrics {
     pub max_latency_ms: u64,
     pub avg_latency_ms: f64,
     pub throughput_blocks_per_sec: f64,
-    pub error_rate: f64, // Percentage of blocks with errors
-    pub commit_rate: f64, // Percentage of blocks committed
-    pub data_integrity_maintained: bool, // Whether data integrity was maintained on errors
+    pub error_rate: f64,
+    pub commit_rate: f64,
+    pub data_integrity_maintained: bool,
 }
 
-/// Compare multiple consensus strategies on the same block
 pub async fn compare_consensus_strategies(
     block: &Block,
     strategies: Vec<Arc<dyn ConsensusStrategy>>,
@@ -338,9 +267,9 @@ pub async fn compare_consensus_strategies(
         let elapsed = start.elapsed().as_millis() as u64;
         
         let (committed, error_occurred, data_integrity) = match result {
-            Ok(Some(_)) => (true, false, true), // Successfully committed
-            Ok(None) => (false, false, true), // Pending but no error
-            Err(_) => (false, true, false), // Error occurred, data integrity may be compromised
+            Ok(Some(_)) => (true, false, true),
+            Ok(None) => (false, false, true),
+            Err(_) => (false, true, false),
         };
         
         results.push(ConsensusComparisonResult {
@@ -391,9 +320,7 @@ pub async fn benchmark_consensus_strategy(
             }
             Err(_) => {
                 error_count += 1;
-                // Check if block still entered chain despite error
                 if strategy.is_committed(block.index) {
-                    // Data entered chain even with error - integrity issue
                     data_integrity_maintained = false;
                 }
             }
@@ -443,7 +370,6 @@ pub async fn benchmark_consensus_strategy(
     }
 }
 
-/// Compare multiple strategies with detailed metrics
 pub async fn compare_consensus_with_metrics(
     blocks: &[Block],
     strategies: Vec<Arc<dyn ConsensusStrategy>>,
@@ -483,7 +409,6 @@ pub fn print_comparison_results(results: &[ConsensusComparisonResult]) {
     println!();
 }
 
-/// Print detailed metrics comparison
 pub fn print_metrics_comparison(metrics: &[ConsensusMetrics]) {
     println!("\n{}", "=".repeat(140));
     println!("  Consensus Algorithm Detailed Metrics Comparison");

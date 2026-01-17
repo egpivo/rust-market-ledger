@@ -26,7 +26,6 @@ mod tests {
     use super::*;
     use std::fs;
     
-    // Initialize logger for tests (only once)
     static INIT: std::sync::Once = std::sync::Once::new();
     
     fn init() {
@@ -117,7 +116,6 @@ mod tests {
         let count = db.get_block_count().unwrap();
         assert_eq!(count, 1);
         
-        // Test retrieval
         let retrieved = db.get_block_by_index(1).unwrap();
         assert_eq!(retrieved.index, 1);
         assert_eq!(retrieved.hash, "abc123");
@@ -126,7 +124,6 @@ mod tests {
         let retrieved_by_hash = db.get_block_by_hash("abc123").unwrap();
         assert_eq!(retrieved_by_hash.index, 1);
         
-        // Test latest block
         let latest = db.get_latest_block().unwrap();
         assert!(latest.is_some());
         assert_eq!(latest.unwrap().index, 1);
@@ -186,7 +183,6 @@ mod tests {
         let range_blocks = db.get_blocks_range(1, 2).unwrap();
         assert_eq!(range_blocks.len(), 2);
         
-        // Test chain verification
         let is_valid = db.verify_chain().unwrap();
         assert!(is_valid);
         
@@ -238,7 +234,6 @@ impl ConsensusType {
     }
 }
 
-/// Display consensus algorithm selection menu
 fn show_consensus_menu() {
     println!("\n{}", "=".repeat(70));
     println!("  Consensus Algorithm Selection");
@@ -264,9 +259,7 @@ fn show_consensus_menu() {
     io::stdout().flush().unwrap();
 }
 
-/// Get consensus algorithm selection from user
 fn get_consensus_selection() -> ConsensusType {
-    // Check command line arguments first
     let args: Vec<String> = env::args().collect();
     for arg in &args {
         if arg.starts_with("--consensus=") {
@@ -285,7 +278,6 @@ fn get_consensus_selection() -> ConsensusType {
         }
     }
     
-    // If no command line argument, show interactive menu
     show_consensus_menu();
     
     let mut input = String::new();
@@ -344,7 +336,6 @@ async fn run_pbft_consensus(
     Ok(None)
 }
 
-/// Run consensus using the selected algorithm
 async fn run_consensus(
     consensus_type: ConsensusType,
     block: Block,
@@ -396,7 +387,6 @@ async fn run_consensus(
         }
         ConsensusType::Quorumless => {
             let consensus = Arc::new(quorumless::QuorumlessConsensus::new(node_id, 5.0));
-            // Set some default weights for demo
             consensus.set_node_weight(0, 2.0);
             consensus.set_node_weight(1, 2.0);
             consensus.set_node_weight(2, 1.5);
@@ -419,9 +409,8 @@ async fn run_consensus(
             }
         }
         ConsensusType::FlexiblePaxos => {
-            // For 4 nodes: Q1=3 (majority), Q2=2 (flexible, but Q1+Q2=5 > 4 ensures intersection)
-            let q1_size = (total_nodes + 1) / 2 + 1; // Majority + 1 for safety
-            let q2_size = total_nodes / 2; // Can be smaller
+            let q1_size = (total_nodes + 1) / 2 + 1;
+            let q2_size = total_nodes / 2;
             let consensus = Arc::new(flexible_paxos::FlexiblePaxos::new(node_id, total_nodes, q1_size, q2_size));
             
             match consensus.propose(&block).await {
@@ -453,11 +442,8 @@ async fn run_consensus(
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    // Initialize logger first (before any other operations)
-    // Use detailed format for demo (includes hostname and memory)
     logger::init_logger_detailed();
     
-    // Get consensus algorithm selection
     let consensus_type = get_consensus_selection();
     info!(
         consensus = consensus_type.name(),
@@ -494,7 +480,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let pbft = Arc::new(PBFTManager::new(node_id, total_nodes, node_addresses.clone()));
     let pbft_clone = pbft.clone();
     
-    // Start network server (only needed for PBFT, but we'll start it anyway for compatibility)
     let network_handler = Arc::new(NetworkHandler::new(move |msg: PBFTMessage| {
         let pbft = pbft_clone.clone();
         match msg.msg_type {
@@ -507,7 +492,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let server_port = port;
     let handler_for_server = network_handler.clone();
     
-    // Only start network server for PBFT
     if consensus_type == ConsensusType::PBFT {
         thread::spawn(move || {
             actix_rt::System::new().block_on(async {
@@ -521,12 +505,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let extractor = Extractor::new()?;
     let transformer = Transformer::new();
     
-    // Get last block info for chain linking and deduplication
     let mut last_hash = String::from("0000_genesis_hash");
     let mut last_index = 0u64;
     let mut last_timestamp: Option<i64> = None;
     
-    // Try to load last block from database
     if let Ok(Some(latest_block)) = db.get_latest_block() {
         last_hash = latest_block.hash.clone();
         last_index = latest_block.index;
@@ -546,7 +528,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             "Starting ETL + Consensus"
         );
         
-        // Extract: Get market data from API or offline source
         let extract_result = if use_offline {
             extractor.extract_offline().await
         } else {
@@ -562,7 +543,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     "Extract: Market data retrieved"
                 );
                 
-                // Transform: Validate and process the data
                 let transform_result = transformer.transform(
                     extract_data.price,
                     extract_data.timestamp,
@@ -580,7 +560,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             continue;
                         }
                         
-                        // Normalize price if needed
                         let normalized_price = transformer.normalize_price(transformed_data.price);
                         
                         debug!(
@@ -590,7 +569,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             "Transform: Data transformed and normalized"
                         );
                         
-                        // Create MarketData from transformed result
                         let market_data = MarketData {
                             asset: transformed_data.asset,
                             price: normalized_price,
@@ -598,7 +576,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             timestamp: transformed_data.timestamp,
                         };
                         
-                        // Create block
                         last_index += 1;
                         let mut new_block = Block {
                             index: last_index,
@@ -616,7 +593,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             "Transform: Block created"
                         );
                         
-                        // Run consensus with selected algorithm
                         match run_consensus(
                             consensus_type,
                             new_block.clone(),
@@ -627,7 +603,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             pbft.clone(),
                         ).await {
                             Ok(Some(committed_block)) => {
-                                // Load: Save to database
                                 match db.save_block(&committed_block) {
                                     Ok(_) => {
                                         last_hash = committed_block.hash.clone();

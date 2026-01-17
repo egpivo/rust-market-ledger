@@ -72,7 +72,6 @@ mod tests {
     use super::*;
     use crate::etl::validator::Validator;
     
-    // Initialize logger for tests (only once)
     static INIT: std::sync::Once = std::sync::Once::new();
     
     fn init() {
@@ -100,7 +99,7 @@ mod tests {
         use chrono::Utc;
         let validator = Validator::new()
             .with_price_range(0.0, 100000.0)
-            .with_timestamp_drift(86400); // 24 hours
+            .with_timestamp_drift(86400);
         let transformer = Transformer::new().with_validator(validator);
         let timestamp = Utc::now().timestamp();
         assert!(transformer.transform(50000.0, timestamp, "Test".to_string(), None).is_ok());
@@ -191,10 +190,9 @@ mod tests {
         ).unwrap();
         assert!(!result1.is_deduplicated);
 
-        // Second transform within window - should be deduplicated
         let result2 = transformer.transform(
             50100.0,
-            timestamp + 30, // Within 60 second window
+            timestamp + 30,
             "Test".to_string(),
             Some(timestamp),
         ).unwrap();
@@ -211,10 +209,9 @@ mod tests {
             .with_deduplication_window(60);
         let timestamp = Utc::now().timestamp();
         
-        // Transform outside window - should not be deduplicated
         let result = transformer.transform(
             50000.0,
-            timestamp + 120, // Outside 60 second window
+            timestamp + 120,
             "Test".to_string(),
             Some(timestamp),
         ).unwrap();

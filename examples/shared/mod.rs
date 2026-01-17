@@ -1,11 +1,7 @@
 //! Shared metrics utilities for experiment examples
-//! 
-//! This module provides common statistical analysis functions
-//! that can be used across different experiment examples.
 
 use rust_market_ledger::consensus::comparison::ConsensusMetrics;
 
-/// Standard deviation metrics for statistical analysis
 pub struct MetricsStdDev {
     pub latency_std_dev: f64,
     pub throughput_std_dev: f64,
@@ -13,10 +9,6 @@ pub struct MetricsStdDev {
     pub error_rate_std_dev: f64,
 }
 
-/// Calculate standard deviation for runtime measurements
-/// 
-/// Returns the standard deviation of the runtime values.
-/// Returns 0.0 if there are less than 2 measurements.
 pub fn calculate_runtime_std_dev(runtimes: &[f64]) -> f64 {
     if runtimes.len() < 2 {
         return 0.0;
@@ -30,12 +22,6 @@ pub fn calculate_runtime_std_dev(runtimes: &[f64]) -> f64 {
     variance.sqrt()
 }
 
-/// Calculate standard deviation for consensus metrics
-/// 
-/// Takes multiple round metrics and calculates the standard deviation
-/// for latency, throughput, commit rate, and error rate.
-/// 
-/// Returns a MetricsStdDev struct with all standard deviations.
 pub fn calculate_metrics_std_dev(
     round_metrics: &[ConsensusMetrics],
     avg_metrics: &ConsensusMetrics,
@@ -73,10 +59,6 @@ pub fn calculate_metrics_std_dev(
     }
 }
 
-/// Calculate average metrics across multiple rounds
-/// 
-/// Takes a slice of ConsensusMetrics from multiple rounds
-/// and calculates the average values for all metrics.
 pub fn calculate_average_metrics(round_metrics: &[ConsensusMetrics]) -> ConsensusMetrics {
     if round_metrics.is_empty() {
         return ConsensusMetrics {

@@ -52,7 +52,6 @@ impl Extractor {
     }
 
     pub async fn extract_from_api(&self) -> Result<ExtractResult, Box<dyn Error>> {
-        // Get API URL from environment variable, with default fallback
         let url = std::env::var("COINGECKO_API_URL")
             .unwrap_or_else(|_| {
                 "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd".to_string()
@@ -141,7 +140,6 @@ impl Extractor {
 mod tests {
     use super::*;
     
-    // Initialize logger for tests (only once)
     static INIT: std::sync::Once = std::sync::Once::new();
     
     fn init() {

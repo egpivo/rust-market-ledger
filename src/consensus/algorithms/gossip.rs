@@ -1,5 +1,4 @@
-//! Gossip-based consensus - no majority voting required
-//! Uses epidemic/gossip protocol for eventual consistency
+//! Gossip-based consensus
 
 use crate::consensus::{ConsensusAlgorithm, ConsensusMessage, ConsensusResult, ConsensusRequirements};
 use crate::etl::Block;
@@ -22,8 +21,8 @@ pub struct GossipConsensus {
     node_id: usize,
     state: Arc<RwLock<HashMap<u64, GossipState>>>,
     committed: Arc<RwLock<HashSet<u64>>>,
-    gossip_rounds: usize, // Number of gossip rounds before committing
-    fanout: usize, // Number of nodes to gossip to each round
+    gossip_rounds: usize,
+    fanout: usize,
 }
 
 impl GossipConsensus {
@@ -50,70 +49,74 @@ impl ConsensusAlgorithm for GossipConsensus {
     async fn propose(&self, block: &Block) -> Result<ConsensusResult, Box<dyn Error>> {
         {
             let mut state = self.state.write();
-            
-            // Initialize gossip state for this block
-            state.insert(block.index, GossipState {
-                block_index: block.index,
-                block_hash: block.hash.clone(),
-                received_from: HashSet::new(),
-                timestamp: Self::get_timestamp(),
+            let gossip_state = state.entry(block.index).or_insert_with(|| {
+                GossipState {
+                    block_index: block.index,
+                    block_hash: block.hash.clone(),
+                    received_from: HashSet::new(),
+                    timestamp: Self::get_timestamp(),
+                }
             });
-        } // Release lock before await
-        
-        // In gossip protocol, we don't wait for majority
-        // After gossip_rounds, we consider it committed
-        tokio::time::sleep(Duration::from_millis(100 * self.gossip_rounds as u64)).await;
-        
-        {
-            let mut committed = self.committed.write();
-            committed.insert(block.index);
+            gossip_state.received_from.insert(self.node_id);
         }
         
-        Ok(ConsensusResult::Committed(block.clone()))
-    }
-    
-    async fn handle_message(&self, message: ConsensusMessage) -> Result<ConsensusResult, Box<dyn Error>> {
-        let mut state = self.state.write();
+        for _ in 0..self.gossip_rounds {
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            
+            {
+                let mut state = self.state.write();
+                if let Some(gossip_state) = state.get_mut(&block.index) {
+                    for _ in 0..self.fanout {
+                        gossip_state.received_from.insert(self.node_id);
+                    }
+                }
+            }
+        }
         
-        // Update gossip state
-        let entry = state.entry(message.block_index).or_insert_with(|| GossipState {
-            block_index: message.block_index,
-            block_hash: message.block_hash.clone(),
-            received_from: HashSet::new(),
-            timestamp: Self::get_timestamp(),
-        });
-        
-        entry.received_from.insert(message.node_id);
-        
-        // Check if we've received from enough nodes (not majority, just enough for confidence)
-        let threshold = self.fanout; // Commit after receiving from fanout nodes
-        if entry.received_from.len() >= threshold {
-            let mut committed = self.committed.write();
-            if !committed.contains(&message.block_index) {
-                committed.insert(message.block_index);
-                return Ok(ConsensusResult::Pending); // Would need block data to return Committed
+        let state = self.state.read();
+        if let Some(gossip_state) = state.get(&block.index) {
+            if gossip_state.received_from.len() >= self.gossip_rounds {
+                self.committed.write().insert(block.index);
+                return Ok(ConsensusResult::Committed(block.clone()));
             }
         }
         
         Ok(ConsensusResult::Pending)
     }
     
-    fn is_committed(&self, block_index: u64) -> bool {
-        self.committed.read().contains(&block_index)
+    async fn handle_message(&self, message: ConsensusMessage) -> Result<ConsensusResult, Box<dyn Error>> {
+        {
+            let mut state = self.state.write();
+            let gossip_state = state.entry(message.block_index).or_insert_with(|| {
+                GossipState {
+                    block_index: message.block_index,
+                    block_hash: message.block_hash.clone(),
+                    received_from: HashSet::new(),
+                    timestamp: Self::get_timestamp(),
+                }
+            });
+            gossip_state.received_from.insert(message.node_id);
+        }
+        Ok(ConsensusResult::Pending)
     }
     
     fn name(&self) -> &str {
-        "Gossip"
+        "Gossip Protocol"
     }
     
     fn requirements(&self) -> ConsensusRequirements {
         ConsensusRequirements {
             requires_majority: false,
-            min_nodes: None, // Gossip works with any number of nodes
+            min_nodes: None,
             description: format!(
-                "Gossip-based consensus - eventual consistency after {} rounds, fanout {}",
+                "Gossip protocol: {} rounds, fanout={}, no majority voting",
                 self.gossip_rounds, self.fanout
             ),
         }
+    }
+    
+    fn is_committed(&self, block_index: u64) -> bool {
+        let committed = self.committed.read();
+        committed.contains(&block_index)
     }
 }

@@ -1,7 +1,4 @@
 //! Blockchain Trilemma Comparison Experiment
-//! 
-//! This example demonstrates a comprehensive comparison of 5 consensus algorithms
-//! in the context of the blockchain trilemma (Decentralization / Security / Scalability).
 
 use rust_market_ledger::consensus::comparison::*;
 use rust_market_ledger::consensus::algorithms::*;
@@ -9,19 +6,16 @@ use rust_market_ledger::etl::{Block, MarketData};
 use std::sync::Arc;
 use std::time::Instant;
 
-// Shared metrics utilities
 #[path = "shared/mod.rs"]
 mod metrics;
 use metrics::{MetricsStdDev, calculate_average_metrics, calculate_metrics_std_dev, calculate_runtime_std_dev};
 
-/// Trilemma scores for each consensus algorithm
 struct TrilemmaScores {
-    decentralization: f64, // 1-5
-    security: f64,          // 1-5
-    scalability: f64,       // 1-5
+    decentralization: f64,
+    security: f64,
+    scalability: f64,
 }
 
-/// Complete experiment result for a strategy
 struct StrategyResult {
     strategy_name: String,
     metrics: ConsensusMetrics,
@@ -31,10 +25,8 @@ struct StrategyResult {
     runtime_std_dev: f64,
 }
 
-/// Run comprehensive trilemma comparison experiment
 #[tokio::main]
 async fn main() {
-    // Record total experiment start time
     let experiment_start = Instant::now();
     
     println!("\n{}", "=".repeat(100));
@@ -43,14 +35,12 @@ async fn main() {
     println!("{}", "=".repeat(100));
     println!();
     
-    // Experiment parameters - FIXED for reproducibility
     const BLOCKS_PER_ROUND: usize = 100;
-    const ROUNDS: usize = 5; // Run 5 times for statistical significance
+    const ROUNDS: usize = 5;
     const TOTAL_NODES: usize = 4;
     const NODE_ID: usize = 0;
     
-    // Consensus algorithm parameters - FIXED for reproducibility
-    const PBFT_QUORUM: usize = 3; // 2f+1 where f=1, total=4
+    const PBFT_QUORUM: usize = 3;
     const GOSSIP_FANOUT: usize = 2;
     const EVENTUAL_DELAY_MS: u64 = 500;
     const EVENTUAL_THRESHOLD: usize = 2;
@@ -77,7 +67,6 @@ async fn main() {
     println!("  Other algorithms use simulated consensus logic");
     println!();
     
-    // Generate test blocks (same for all strategies)
     let mut blocks: Vec<Block> = Vec::new();
     for i in 1..=BLOCKS_PER_ROUND {
         let previous_hash = if i == 1 {
@@ -106,7 +95,6 @@ async fn main() {
     println!("Generated {} test blocks", blocks.len());
     println!();
     
-    // Initialize consensus strategies with FIXED parameters
     let node_addresses = vec![
         "127.0.0.1:8000".to_string(),
         "127.0.0.1:8001".to_string(),
@@ -114,7 +102,6 @@ async fn main() {
         "127.0.0.1:8003".to_string(),
     ];
     
-    // Create all strategies with FIXED parameters for reproducibility
     let pbft_manager = Arc::new(PBFTManager::new(NODE_ID, TOTAL_NODES, node_addresses.clone()));
     let pbft_consensus = Arc::new(pbft::PBFTConsensus::new(
         pbft_manager.clone(),
@@ -159,22 +146,17 @@ async fn main() {
     }
     println!();
     
-    // Run experiments for each strategy
     let mut all_results: Vec<StrategyResult> = Vec::new();
     
     for (strategy_name, strategy) in &strategies {
         println!("Testing {}...", strategy_name);
         
-        // Record strategy start time
-        
-        // Run multiple rounds and collect metrics (for statistical analysis)
         let mut round_metrics: Vec<ConsensusMetrics> = Vec::new();
         let mut round_runtimes: Vec<f64> = Vec::new();
         
         for round in 1..=ROUNDS {
             print!("  Round {}/{}... ", round, ROUNDS);
             let round_start = Instant::now();
-            // Use the SAME blocks for all rounds to ensure reproducibility
             let metrics = benchmark_consensus_strategy(strategy.clone(), &blocks).await;
             let round_elapsed = round_start.elapsed().as_secs_f64();
             round_metrics.push(metrics);
@@ -182,17 +164,10 @@ async fn main() {
             println!("Done ({:.2}s)", round_elapsed);
         }
         
-        // Calculate strategy runtime (average across rounds)
         let strategy_runtime = round_runtimes.iter().sum::<f64>() / round_runtimes.len() as f64;
-        
-        // Calculate average metrics and standard deviation across rounds
         let avg_metrics = calculate_average_metrics(&round_metrics);
         let metrics_std_dev = calculate_metrics_std_dev(&round_metrics, &avg_metrics);
-        
-        // Calculate runtime statistics
         let runtime_std_dev = calculate_runtime_std_dev(&round_runtimes);
-        
-        // Assign trilemma scores based on algorithm characteristics
         let trilemma = get_trilemma_scores(strategy_name);
         
         all_results.push(StrategyResult {
@@ -207,16 +182,9 @@ async fn main() {
         println!("  {} completed in {:.2}s\n", strategy_name, strategy_runtime);
     }
     
-    // Calculate total experiment runtime
     let total_runtime = experiment_start.elapsed();
-    
-    // Print runtime information
     print_runtime_summary(&all_results, total_runtime, ROUNDS);
-    
-    // Print comprehensive comparison table
     print_trilemma_comparison_table(&all_results, ROUNDS);
-    
-    // Print detailed analysis
     print_trilemma_analysis(&all_results);
     
     println!("{}", "=".repeat(100));
@@ -228,7 +196,6 @@ async fn main() {
     println!("{}", "=".repeat(100));
 }
 
-/// Get trilemma scores for each consensus algorithm
 fn get_trilemma_scores(strategy_name: &str) -> TrilemmaScores {
     match strategy_name {
         "PBFT" => TrilemmaScores {
@@ -264,7 +231,6 @@ fn get_trilemma_scores(strategy_name: &str) -> TrilemmaScores {
     }
 }
 
-/// Print runtime summary for credibility
 fn print_runtime_summary(results: &[StrategyResult], total_runtime: std::time::Duration, rounds: usize) {
     println!("\n{}", "=".repeat(120));
     println!("  Runtime Summary (for Medium article credibility)");
@@ -300,7 +266,6 @@ fn print_runtime_summary(results: &[StrategyResult], total_runtime: std::time::D
         total_runtime.as_secs_f64() / 60.0);
     println!();
     
-    // System information (for reproducibility)
     println!("System Information (for reproducibility):");
     println!("  OS: {}", std::env::consts::OS);
     println!("  Architecture: {}", std::env::consts::ARCH);
@@ -314,7 +279,6 @@ fn print_runtime_summary(results: &[StrategyResult], total_runtime: std::time::D
     }
     println!();
     
-    // Experimental scope and limitations
     println!("Experimental Scope and Limitations:");
     println!("  - Network: Simulated (single-machine)");
     println!("  - PBFT: Has network handler but runs in simulated mode");
@@ -325,14 +289,12 @@ fn print_runtime_summary(results: &[StrategyResult], total_runtime: std::time::D
     println!();
 }
 
-/// Print comprehensive trilemma comparison table
 fn print_trilemma_comparison_table(results: &[StrategyResult], rounds: usize) {
     println!("\n{}", "=".repeat(120));
     println!("  Comprehensive Trilemma Comparison Table");
     println!("{}", "=".repeat(120));
     println!();
     
-    // Performance metrics table with standard deviation
     println!("Performance Metrics (Mean ± Std Dev, n={}):", rounds);
     println!("{:<20} | {:>12} | {:>12} | {:>12} | {:>12} | {:>12}", 
         "Strategy", "Latency (ms)", "Throughput", "Commit Rate", "Error Rate", "Integrity");
@@ -356,7 +318,6 @@ fn print_trilemma_comparison_table(results: &[StrategyResult], rounds: usize) {
     
     println!();
     
-    // Trilemma scores table
     println!("Trilemma Scores (1-5 scale):");
     println!("{:<20} | {:>15} | {:>15} | {:>15} | {:>15}", 
         "Strategy", "Decentralization", "Security", "Scalability", "Total");
@@ -378,7 +339,6 @@ fn print_trilemma_comparison_table(results: &[StrategyResult], rounds: usize) {
     println!();
 }
 
-/// Print detailed trilemma analysis
 fn print_trilemma_analysis(results: &[StrategyResult]) {
     println!("{}", "=".repeat(120));
     println!("  Trilemma Analysis: Trade-offs and Sacrifices");
@@ -388,7 +348,6 @@ fn print_trilemma_analysis(results: &[StrategyResult]) {
     for result in results {
         println!("{}:", result.strategy_name);
         
-        // Identify primary sacrifice
         let scores = &result.trilemma;
         let min_score = scores.decentralization.min(scores.security).min(scores.scalability);
         let sacrifice = if scores.scalability == min_score {
@@ -407,7 +366,6 @@ fn print_trilemma_analysis(results: &[StrategyResult]) {
         println!();
     }
     
-    // Find best in each category
     println!("Best Performers:");
     if let Some(best_latency) = results.iter().min_by(|a, b| {
         a.metrics.avg_latency_ms.partial_cmp(&b.metrics.avg_latency_ms).unwrap()

@@ -3,7 +3,6 @@ use rusqlite::{params, Connection};
 use std::sync::{Arc, Mutex};
 use tracing::{info, debug};
 
-/// Custom error type for database operations
 #[derive(Debug)]
 pub enum DatabaseError {
     Sqlite(rusqlite::Error),
@@ -31,16 +30,13 @@ impl From<rusqlite::Error> for DatabaseError {
     }
 }
 
-/// Result type for database operations
 pub type DbResult<T> = Result<T, DatabaseError>;
 
-/// Database manager with connection pooling and enhanced features
 pub struct DatabaseManager {
     conn: Arc<Mutex<Connection>>,
 }
 
 impl DatabaseManager {
-    /// Create a new DatabaseManager instance
     pub fn new(path: &str) -> DbResult<Self> {
         let conn = Connection::open(path)?;
         Ok(DatabaseManager {
@@ -52,7 +48,6 @@ impl DatabaseManager {
     pub fn init(&self) -> DbResult<()> {
         let conn = self.conn.lock().unwrap();
         
-        // Create main blockchain table
         conn.execute(
             "CREATE TABLE IF NOT EXISTS blockchain (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,7 +62,6 @@ impl DatabaseManager {
             [],
         )?;
 
-        // Create indexes for better query performance
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_block_index ON blockchain(block_index)",
             [],
@@ -86,7 +80,6 @@ impl DatabaseManager {
         Ok(())
     }
 
-    /// Save a single block to the database
     pub fn save_block(&self, block: &Block) -> DbResult<()> {
         let conn = self.conn.lock().unwrap();
         let data_json = serde_json::to_string(&block.data)
@@ -139,7 +132,6 @@ impl DatabaseManager {
         Ok(count)
     }
 
-    /// Get a block by its index
     pub fn get_block_by_index(&self, index: u64) -> DbResult<Block> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
@@ -177,7 +169,6 @@ impl DatabaseManager {
         }
     }
 
-    /// Get a block by its hash
     pub fn get_block_by_hash(&self, hash: &str) -> DbResult<Block> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
@@ -215,7 +206,6 @@ impl DatabaseManager {
         }
     }
 
-    /// Get the latest block in the chain
     pub fn get_latest_block(&self) -> DbResult<Option<Block>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
@@ -253,8 +243,6 @@ impl DatabaseManager {
 
     /// Query latest blocks and return them (instead of just printing)
     pub fn query_latest_blocks(&self, limit: u64) -> DbResult<Vec<Block>> {
-        // Convert u64 to i64 for SQLite LIMIT clause (SQLite INTEGER is signed)
-        // Cap at i64::MAX to avoid overflow
         let limit_i64 = limit.min(i64::MAX as u64) as i64;
         
         let conn = self.conn.lock().unwrap();
@@ -291,7 +279,6 @@ impl DatabaseManager {
         Ok(blocks)
     }
 
-    /// Print latest blocks (backward compatibility)
     pub fn print_latest_blocks(&self, limit: u64) -> DbResult<()> {
         let blocks = self.query_latest_blocks(limit)?;
         
@@ -316,10 +303,7 @@ impl DatabaseManager {
         Ok(count)
     }
 
-    /// Get blocks in a range (for pagination)
     pub fn get_blocks_range(&self, start_index: u64, end_index: u64) -> DbResult<Vec<Block>> {
-        // Convert u64 to i64 for SQLite compatibility (SQLite INTEGER is signed)
-        // This is safe as block indices will never exceed i64::MAX in practice
         let start_i64 = start_index as i64;
         let end_i64 = end_index as i64;
         
@@ -360,7 +344,6 @@ impl DatabaseManager {
 
     /// Verify blockchain integrity by checking hash chain
     pub fn verify_chain(&self) -> DbResult<bool> {
-        // Get all blocks without limit (use a large but safe i64 value)
         let limit = i64::MAX as u64;
         let blocks = self.query_latest_blocks(limit)?;
         
@@ -368,7 +351,6 @@ impl DatabaseManager {
             return Ok(true);
         }
 
-        // Sort by index ascending
         let mut sorted_blocks = blocks;
         sorted_blocks.sort_by_key(|b| b.index);
 
@@ -376,12 +358,10 @@ impl DatabaseManager {
             let prev_block = &sorted_blocks[i - 1];
             let curr_block = &sorted_blocks[i];
 
-            // Verify previous hash matches
             if curr_block.previous_hash != prev_block.hash {
                 return Ok(false);
             }
 
-            // Verify hash calculation
             let calculated_hash = curr_block.calculate_hash();
             if calculated_hash != curr_block.hash {
                 return Ok(false);
@@ -402,7 +382,6 @@ impl DatabaseManager {
         Ok(rows_affected > 0)
     }
 
-    /// Get database statistics
     pub fn get_stats(&self) -> DbResult<DatabaseStats> {
         let conn = self.conn.lock().unwrap();
         
@@ -450,12 +429,10 @@ mod tests {
     use crate::etl::{Block, MarketData};
     use std::fs;
     
-    // Initialize logger for tests (only once)
     static INIT: std::sync::Once = std::sync::Once::new();
     
     fn init() {
         INIT.call_once(|| {
-            // Suppress logs in tests unless RUST_LOG is explicitly set
             let _ = tracing_subscriber::fmt()
                 .with_env_filter(
                     tracing_subscriber::EnvFilter::try_from_default_env()
@@ -553,11 +530,9 @@ mod tests {
         let db = DatabaseManager::new(test_db).unwrap();
         db.init().unwrap();
         
-        // Empty database
         let latest = db.get_latest_block().unwrap();
         assert!(latest.is_none());
         
-        // Add blocks
         let block1 = create_test_block(1, "0000_genesis");
         db.save_block(&block1).unwrap();
         
@@ -594,7 +569,7 @@ mod tests {
         
         let blocks = db.query_latest_blocks(2).unwrap();
         assert_eq!(blocks.len(), 2);
-        assert_eq!(blocks[0].index, 3); // Latest first
+        assert_eq!(blocks[0].index, 3);
         assert_eq!(blocks[1].index, 2);
         
         fs::remove_file(test_db).ok();
@@ -685,7 +660,6 @@ mod tests {
         let block1 = create_test_block(1, "0000_genesis");
         db.save_block(&block1).unwrap();
         
-        // Create block with wrong previous hash
         let mut block2 = create_test_block(2, "wrong_hash");
         db.save_block(&block2).unwrap();
         
@@ -735,7 +709,6 @@ mod tests {
         assert!(stats.min_index.is_none());
         assert!(stats.max_index.is_none());
         
-        // Add blocks
         let mut prev_hash = "0000_genesis".to_string();
         for i in 1..=3 {
             let block = create_test_block(i, &prev_hash);

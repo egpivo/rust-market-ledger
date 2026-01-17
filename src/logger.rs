@@ -1,13 +1,4 @@
-//! Logging configuration and initialization
-//! 
-//! This module provides logging setup using the `tracing` crate,
-//! which is well-suited for async Rust applications.
-//! 
-//! Custom format similar to Python logging:
-//! `HOSTNAME [timestamp] {file:line} [memory] LEVEL - message`
-//! 
-//! Example:
-//! `C02G725ZMD6P [2024-01-15 10:30:45.123] {main.rs:255} [45.2M] INFO - Node 0 starting on port 8000`
+//! Logging configuration
 
 use tracing_subscriber::{
     fmt,
@@ -18,7 +9,6 @@ use tracing_subscriber::{
 };
 use std::sync::LazyLock;
 
-// Cache hostname to avoid repeated lookups
 static HOSTNAME: LazyLock<String> = LazyLock::new(|| {
     hostname::get()
         .ok()
@@ -26,8 +16,6 @@ static HOSTNAME: LazyLock<String> = LazyLock::new(|| {
         .unwrap_or_else(|| "unknown".to_string())
 });
 
-/// Get current memory usage in MB
-/// Returns a formatted string like "45.2M"
 fn get_memory_usage() -> String {
     #[cfg(target_os = "linux")]
     {
@@ -64,7 +52,6 @@ fn get_memory_usage() -> String {
         }
     }
     
-    // Fallback: use sysinfo
     {
         use sysinfo::System;
         let mut system = System::new();
@@ -79,35 +66,19 @@ fn get_memory_usage() -> String {
     "N/A".to_string()
 }
 
-/// Initialize the logging system with standard format
-/// 
-/// Format: `[timestamp] {file:line} LEVEL - message`
-/// 
-/// This should be called once at the start of the application.
-/// Logging level can be controlled via the `RUST_LOG` environment variable.
-/// 
-/// Examples:
-/// - `RUST_LOG=info` - Show info level and above
-/// - `RUST_LOG=debug` - Show debug level and above
-/// - `RUST_LOG=rust_market_ledger=debug,actix_web=info` - Module-specific levels
-/// - `RUST_LOG=warn` - Show only warnings and errors
-/// 
-/// Note: For detailed format with hostname and memory, use `init_logger_detailed()` instead.
-#[allow(dead_code)] // Alternative to init_logger_detailed() for simpler output
+#[allow(dead_code)]
 pub fn init_logger() {
-    // Try to load .env file first (if using dotenvy)
     dotenvy::dotenv().ok();
     
-    // Initialize tracing subscriber with standard format
     tracing_subscriber::registry()
         .with(
             EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("info")), // Default to info level
+                .unwrap_or_else(|_| EnvFilter::new("info")),
         )
         .with(
             fmt::layer()
                 .with_timer(ChronoLocal::rfc_3339())
-                .with_target(false) // We show file:line instead
+                .with_target(false)
                 .with_level(true)
                 .with_ansi(true)
                 .with_file(true)
@@ -119,19 +90,9 @@ pub fn init_logger() {
     tracing::info!("Logger initialized");
 }
 
-/// Initialize logger with detailed format (includes hostname and memory)
-/// 
-/// Format: `HOSTNAME [timestamp] {file:line} [memory] LEVEL - message`
-/// 
-/// Similar to Python logging format:
-/// `C02G725ZMD6P [2022-07-07 16:07:27,522] {logger.py:32, warning} [10252.0M] WARNING - test`
-/// 
-/// Uses a custom formatter that prepends hostname and memory to each log line.
 pub fn init_logger_detailed() {
     dotenvy::dotenv().ok();
     
-    // Use a custom format that mimics Python logging style
-    // Format: HOSTNAME [timestamp] {file:line} [memory] LEVEL - message
     tracing_subscriber::registry()
         .with(
             EnvFilter::try_from_default_env()
@@ -158,7 +119,6 @@ pub fn init_logger_detailed() {
         )
         .init();
     
-    // Log initial message with hostname and memory
     let memory = get_memory_usage();
     tracing::info!(
         hostname = %*HOSTNAME,
@@ -167,10 +127,6 @@ pub fn init_logger_detailed() {
     );
 }
 
-/// Initialize logger with JSON format
-/// 
-/// Useful for production environments where you might want JSON output
-/// Note: Requires "json" feature in tracing-subscriber
 #[cfg(feature = "json")]
 pub fn init_logger_json() {
     dotenvy::dotenv().ok();
@@ -192,20 +148,14 @@ pub fn init_logger_json() {
     tracing::info!("Logger initialized (JSON format)");
 }
 
-/// Initialize logger for tests
-/// 
-/// This suppresses most output and only shows errors/warnings
-/// to keep test output clean. Uses try_init() so it won't panic
-/// if logger is already initialized.
 #[cfg(test)]
 pub fn init_test_logger() {
     use tracing_subscriber::fmt::TestWriter;
     
-    // Only initialize if not already initialized
     let _ = tracing_subscriber::registry()
         .with(
             EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("error")), // Only errors in tests by default
+                .unwrap_or_else(|_| EnvFilter::new("error")),
         )
         .with(
             fmt::layer()
@@ -214,15 +164,9 @@ pub fn init_test_logger() {
                 .with_ansi(false)
                 .compact(),
         )
-        .try_init(); // try_init() won't panic if already initialized
+        .try_init();
 }
 
-/// Helper macro to log with hostname and memory automatically
-/// 
-/// Usage:
-/// ```rust
-/// log_with_context!(info, "Processing block {}", block_index);
-/// ```
 #[macro_export]
 macro_rules! log_with_context {
     ($level:ident, $($arg:tt)*) => {
@@ -238,12 +182,10 @@ macro_rules! log_with_context {
     };
 }
 
-/// Get the cached hostname
 pub fn get_hostname() -> &'static str {
     &*HOSTNAME
 }
 
-/// Get current memory usage (exposed for use in macros)
 pub fn get_memory_usage_public() -> String {
     get_memory_usage()
 }
