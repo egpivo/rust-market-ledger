@@ -12,7 +12,6 @@
 //!   - `gossip.rs` - Gossip protocol (no majority voting)
 //!   - `eventual.rs` - Eventual consistency (no majority voting)
 //!   - `quorumless.rs` - Weighted voting (no majority voting)
-//! - `examples.rs` - Usage examples
 //! - `tests.rs` - Unit tests
 
 // Re-export public API
@@ -21,9 +20,6 @@ pub use types::{ConsensusMessage, ConsensusRequirements, ConsensusResult};
 
 // Algorithm implementations
 pub mod algorithms;
-
-// Examples
-pub mod examples;
 
 // Re-export comparison module for easy access
 pub use comparison::*;
