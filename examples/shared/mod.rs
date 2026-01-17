@@ -81,6 +81,18 @@ pub fn calculate_average_metrics(round_metrics: &[ConsensusMetrics]) -> Consensu
             error_rate: 0.0,
             commit_rate: 0.0,
             data_integrity_maintained: true,
+            block_proposal_randomness: None,
+            geographical_diversity: None,
+            hashing_power_distribution: None,
+            token_concentration: None,
+            wealth_distribution: None,
+            availability: 0.0,
+            confirmation_latency_ms: 0.0,
+            max_throughput_tps: 0.0,
+            cost_of_attack: None,
+            fault_tolerance: 0.0,
+            reliability: 0.0,
+            stale_block_rate: 0.0,
         };
     }
 
@@ -118,5 +130,18 @@ pub fn calculate_average_metrics(round_metrics: &[ConsensusMetrics]) -> Consensu
         error_rate: round_metrics.iter().map(|m| m.error_rate).sum::<f64>() / count,
         commit_rate: round_metrics.iter().map(|m| m.commit_rate).sum::<f64>() / count,
         data_integrity_maintained: round_metrics.iter().all(|m| m.data_integrity_maintained),
+        // Extended metrics - average across rounds
+        block_proposal_randomness: round_metrics[0].block_proposal_randomness,
+        geographical_diversity: round_metrics[0].geographical_diversity,
+        hashing_power_distribution: round_metrics[0].hashing_power_distribution,
+        token_concentration: round_metrics[0].token_concentration,
+        wealth_distribution: round_metrics[0].wealth_distribution,
+        availability: round_metrics.iter().map(|m| m.availability).sum::<f64>() / count,
+        confirmation_latency_ms: round_metrics.iter().map(|m| m.confirmation_latency_ms).sum::<f64>() / count,
+        max_throughput_tps: round_metrics.iter().map(|m| m.max_throughput_tps).sum::<f64>() / count,
+        cost_of_attack: round_metrics[0].cost_of_attack,
+        fault_tolerance: round_metrics.iter().map(|m| m.fault_tolerance).sum::<f64>() / count,
+        reliability: round_metrics.iter().map(|m| m.reliability).sum::<f64>() / count,
+        stale_block_rate: round_metrics.iter().map(|m| m.stale_block_rate).sum::<f64>() / count,
     }
 }

@@ -3,38 +3,6 @@ name = "rust-market-ledger"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-name = "rust_market_ledger"
-path = "src/lib.rs"
-
-[[example]]
-name = "trilemma_comparison"
-path = "examples/trilemma_comparison.rs"
-
-[[example]]
-name = "metrics_comparison_example"
-path = "examples/metrics_comparison_example.rs"
-
-[[example]]
-name = "no_consensus_example"
-path = "examples/no_consensus_example.rs"
-
-[[example]]
-name = "simple_majority_example"
-path = "examples/simple_majority_example.rs"
-
-[[example]]
-name = "pbft_baseline_example"
-path = "examples/pbft_baseline_example.rs"
-
-[[example]]
-name = "run_all_comparisons"
-path = "examples/run_all_comparisons.rs"
-
-[[example]]
-name = "comparison_example"
-path = "examples/comparison_example.rs"
-
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -47,12 +15,8 @@ actix-web = "4"
 actix-rt = "2"
 parking_lot = "0.12"
 async-trait = "0.1"
-dotenvy = "0.15"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "chrono"] }
-hostname = "0.4"
 sysinfo = "0.30"
-
-[features]
-default = []
-json = ["tracing-subscriber/json"]
+hostname = "0.4"
+dotenvy = "0.15"

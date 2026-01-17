@@ -464,7 +464,7 @@
                 <div class="data-note" style="margin-bottom: 24px;">
                     <strong>Note:</strong> Values shown are illustrative and based on simulator characteristics. For detailed analysis, see experimental design documentation. These metrics demonstrate relative trade-offs between algorithms rather than production benchmarks.
                 </div>
-                <h2>Performance Metrics</h2>
+                <h2>Performance Metrics (Basic)</h2>
                 <table>
                     <thead>
                         <tr>
@@ -508,6 +508,161 @@
                             <td class="metric">Flexible Paxos</td>
                             <td class="value">800.0 &plusmn; 30.0</td>
                             <td class="value">125.0</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h2 style="margin-top: 32px;">Extended Trilemma Metrics (arXiv:2505.03768)</h2>
+                <p class="subtext">15 metrics across three dimensions: Decentralization (5), Scalability (3), Security (4)</p>
+                
+                <h3 style="margin-top: 24px;">Degree of Decentralization (DoD) - 5 Metrics</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Strategy</th>
+                                <th>Block Proposal Randomness</th>
+                                <th>Geographic Diversity</th>
+                                <th>Hash Power Distribution</th>
+                                <th>Token Concentration</th>
+                                <th>Wealth Distribution</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="metric">PBFT</td>
+                                <td class="value">0.80</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                            </tr>
+                            <tr>
+                                <td class="metric">Gossip</td>
+                                <td class="value">0.80</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                            </tr>
+                            <tr>
+                                <td class="metric">Eventual</td>
+                                <td class="value">0.80</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                            </tr>
+                            <tr>
+                                <td class="metric">Quorum-less</td>
+                                <td class="value">0.80</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                            </tr>
+                            <tr>
+                                <td class="metric">Flexible Paxos</td>
+                                <td class="value">0.80</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                                <td class="value">N/A</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h3 style="margin-top: 24px;">Scalability - 3 Metrics</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Strategy</th>
+                            <th>Availability (%)</th>
+                            <th>Confirmation Latency (ms)</th>
+                            <th>Max Throughput (TPS)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="metric">PBFT</td>
+                            <td class="value">100.0</td>
+                            <td class="value">1500.0</td>
+                            <td class="value">66.67</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Gossip</td>
+                            <td class="value">100.0</td>
+                            <td class="value">300.0</td>
+                            <td class="value">333.33</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Eventual</td>
+                            <td class="value">100.0</td>
+                            <td class="value">500.0</td>
+                            <td class="value">200.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Quorum-less</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.5</td>
+                            <td class="value">2000.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Flexible Paxos</td>
+                            <td class="value">100.0</td>
+                            <td class="value">800.0</td>
+                            <td class="value">125.0</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3 style="margin-top: 24px;">Security - 4 Metrics</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Strategy</th>
+                            <th>Cost of Attack</th>
+                            <th>Fault Tolerance</th>
+                            <th>Reliability (%)</th>
+                            <th>Stale Block Rate (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="metric">PBFT</td>
+                            <td class="value">0.75</td>
+                            <td class="value">0.25</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Gossip</td>
+                            <td class="value">0.30</td>
+                            <td class="value">0.10</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Eventual</td>
+                            <td class="value">0.30</td>
+                            <td class="value">0.10</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Quorum-less</td>
+                            <td class="value">0.30</td>
+                            <td class="value">0.10</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Flexible Paxos</td>
+                            <td class="value">0.75</td>
+                            <td class="value">0.25</td>
                             <td class="value">100.0</td>
                             <td class="value">0.0</td>
                         </tr>

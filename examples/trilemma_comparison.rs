@@ -357,7 +357,59 @@ fn print_trilemma_comparison_table(results: &[StrategyResult], rounds: usize) {
     }
 
     println!();
-
+    println!("Extended Trilemma Metrics (arXiv:2505.03768 - 15 Metrics):");
+    println!();
+    println!("Degree of Decentralization (DoD) - 5 metrics:");
+    println!(
+        "{:<20} | {:>18} | {:>18} | {:>18} | {:>18} | {:>18}",
+        "Strategy", "Block Proposal Rand", "Geographic Diversity", "Hash Power Dist", "Token Concentration", "Wealth Distribution"
+    );
+    println!("{}", "-".repeat(140));
+    for result in results {
+        println!(
+            "{:<20} | {:>18} | {:>18} | {:>18} | {:>18} | {:>18}",
+            result.strategy_name,
+            result.metrics.block_proposal_randomness.map(|v| format!("{:.2}", v)).unwrap_or_else(|| "N/A".to_string()),
+            result.metrics.geographical_diversity.map(|v| format!("{:.2}", v)).unwrap_or_else(|| "N/A".to_string()),
+            result.metrics.hashing_power_distribution.map(|v| format!("{:.2}", v)).unwrap_or_else(|| "N/A".to_string()),
+            result.metrics.token_concentration.map(|v| format!("{:.2}", v)).unwrap_or_else(|| "N/A".to_string()),
+            result.metrics.wealth_distribution.map(|v| format!("{:.2}", v)).unwrap_or_else(|| "N/A".to_string()),
+        );
+    }
+    println!();
+    println!("Scalability - 3 metrics:");
+    println!(
+        "{:<20} | {:>15} | {:>20} | {:>20}",
+        "Strategy", "Availability (%)", "Confirmation Latency (ms)", "Max Throughput (TPS)"
+    );
+    println!("{}", "-".repeat(100));
+    for result in results {
+        println!(
+            "{:<20} | {:>15.2} | {:>20.2} | {:>20.2}",
+            result.strategy_name,
+            result.metrics.availability,
+            result.metrics.confirmation_latency_ms,
+            result.metrics.max_throughput_tps,
+        );
+    }
+    println!();
+    println!("Security - 4 metrics:");
+    println!(
+        "{:<20} | {:>15} | {:>20} | {:>15} | {:>20}",
+        "Strategy", "Cost of Attack", "Fault Tolerance", "Reliability (%)", "Stale Block Rate (%)"
+    );
+    println!("{}", "-".repeat(110));
+    for result in results {
+        println!(
+            "{:<20} | {:>15} | {:>20.2} | {:>15.2} | {:>20.2}",
+            result.strategy_name,
+            result.metrics.cost_of_attack.map(|v| format!("{:.2}", v)).unwrap_or_else(|| "N/A".to_string()),
+            result.metrics.fault_tolerance,
+            result.metrics.reliability,
+            result.metrics.stale_block_rate,
+        );
+    }
+    println!();
     println!("Trilemma Scores (1-5 scale):");
     println!(
         "{:<20} | {:>15} | {:>15} | {:>15} | {:>15}",
