@@ -4,6 +4,8 @@
 
 These three examples demonstrate different consensus strategies while keeping the ETL + block generation flow unchanged.
 
+**Implementation Note**: The consensus algorithms in this repository are **conceptual implementations** - simplified versions designed for educational purposes and comparative analysis. They capture the essential characteristics and trade-offs of each algorithm but are not full production implementations. The implementations use simulated network communication and simplified state management for demonstration purposes.
+
 ### Design Philosophy
 
 - **Keep ETL + Block flow unchanged** - Only replace consensus module

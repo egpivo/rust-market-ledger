@@ -8,6 +8,13 @@ A demonstration repository for comparing different distributed consensus algorit
 
 This project implements a market ledger system with pluggable consensus algorithms, demonstrating various consensus mechanisms (PBFT, Gossip, Eventual Consistency, Quorum-less, Flexible Paxos) and their trade-offs.
 
+**Important Note**: The consensus algorithm implementations in this repository are **conceptual implementations** designed for educational and demonstration purposes. They are simplified versions that capture the core characteristics and trade-offs of each algorithm but are not production-ready implementations. These implementations are intended for:
+- Understanding consensus algorithm concepts and trade-offs
+- Comparing performance characteristics in a controlled simulation environment
+- Educational demonstrations of the blockchain trilemma
+
+For production use, please refer to established consensus libraries and implementations.
+
 ## Features
 
 - **ETL Pipeline**: Extract, Transform, Load pipeline for market data
