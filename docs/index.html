@@ -5,278 +5,334 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rust Market Ledger - Consensus Comparison</title>
     <style>
+        :root {
+            color-scheme: light;
+            --bg: #f4f7fb;
+            --card: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --accent: #2563eb;
+            --accent-weak: #dbeafe;
+            --border: #e5e7eb;
+            --success: #16a34a;
+            --warning-bg: #fff7ed;
+            --warning-border: #fdba74;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
-            background: #f5f5f5;
-            padding: 20px;
+            color: var(--text);
+            background: var(--bg);
+            padding: 32px 20px 40px;
         }
-        
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .hero {
+            background: linear-gradient(135deg, #0f172a, #1e3a8a);
+            color: #f8fafc;
             padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            box-shadow: 0 20px 35px rgba(15, 23, 42, 0.2);
         }
-        
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 10px;
-            font-size: 2.5em;
+
+        .hero h1 {
+            font-size: 2.6rem;
+            margin-bottom: 12px;
         }
-        
-        .subtitle {
-            color: #7f8c8d;
-            margin-bottom: 30px;
-            font-size: 1.2em;
+
+        .hero p {
+            color: #cbd5f5;
+            font-size: 1.1rem;
+            max-width: 720px;
         }
-        
+
+        .hero-actions {
+            margin-top: 24px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 0.85rem;
+            letter-spacing: 0.02em;
+        }
+
         .section {
-            margin: 40px 0;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            border-left: 4px solid #3498db;
+            background: var(--card);
+            padding: 28px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
         }
-        
+
         h2 {
-            color: #2c3e50;
+            font-size: 1.6rem;
+            margin-bottom: 16px;
+        }
+
+        .subtext {
+            color: var(--muted);
             margin-bottom: 20px;
-            font-size: 1.8em;
         }
-        
-        .strategy-panel {
-            background: white;
-            padding: 25px;
-            border-radius: 6px;
-            margin: 20px 0;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+
+        .panel-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
         }
-        
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 18px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(15, 23, 42, 0.05);
+        }
+
         .strategy-select {
             width: 100%;
-            padding: 12px;
-            font-size: 1.1em;
-            border: 2px solid #3498db;
-            border-radius: 4px;
-            background: white;
-            cursor: pointer;
-            margin-bottom: 20px;
+            padding: 12px 14px;
+            font-size: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #f8fafc;
         }
-        
+
         .strategy-dashboard {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
+            gap: 16px;
+            margin-top: 18px;
         }
-        
+
         .dashboard-card {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            border-left: 4px solid #3498db;
+            background: #f9fafb;
+            padding: 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
         }
-        
+
         .dashboard-card h4 {
-            color: #7f8c8d;
-            font-size: 0.9em;
-            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 0.85rem;
+            margin-bottom: 6px;
         }
-        
+
         .dashboard-card .value {
-            font-size: 1.5em;
+            font-size: 1.3rem;
             font-weight: 600;
-            color: #2c3e50;
-            font-family: 'Courier New', monospace;
+            font-family: "JetBrains Mono", "Courier New", monospace;
         }
-        
+
+        .data-note {
+            background: var(--warning-bg);
+            border: 1px solid var(--warning-border);
+            padding: 14px;
+            border-radius: 10px;
+            color: #7c2d12;
+            margin-top: 16px;
+        }
+
         .params-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
+            gap: 14px;
         }
-        
+
         .param-item {
-            background: white;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--border);
+            padding: 14px;
+            border-radius: 10px;
+            background: #f9fafb;
         }
-        
+
         .param-item strong {
-            color: #2c3e50;
             display: block;
-            margin-bottom: 5px;
+            margin-bottom: 6px;
         }
-        
-        .param-item .value {
-            color: #27ae60;
-            font-family: 'Courier New', monospace;
+
+        .param-item span {
+            color: var(--success);
+            font-family: "JetBrains Mono", "Courier New", monospace;
         }
-        
+
         .tabs {
             display: flex;
-            border-bottom: 2px solid #ddd;
-            margin: 20px 0;
+            gap: 8px;
+            margin-bottom: 16px;
         }
-        
+
         .tab {
-            padding: 12px 24px;
-            background: #f8f9fa;
-            border: none;
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #f8fafc;
+            color: var(--muted);
             cursor: pointer;
-            font-size: 1em;
-            color: #7f8c8d;
-            border-top-left-radius: 6px;
-            border-top-right-radius: 6px;
-            margin-right: 5px;
         }
-        
+
         .tab.active {
-            background: white;
-            color: #2c3e50;
-            border-bottom: 2px solid #3498db;
-            margin-bottom: -2px;
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
         }
-        
+
         .tab-content {
             display: none;
-            padding: 20px;
-            background: white;
-            border-radius: 6px;
         }
-        
+
         .tab-content.active {
             display: block;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
-            background: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            overflow: hidden;
         }
-        
+
         th, td {
             padding: 12px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--border);
         }
-        
+
         th {
-            background: #3498db;
-            color: white;
-            font-weight: 600;
+            background: #1e3a8a;
+            color: #fff;
         }
-        
-        tr:hover {
-            background: #f5f5f5;
+
+        tr:nth-child(even) {
+            background: #f9fafb;
         }
-        
+
         .metric {
             font-weight: 600;
-            color: #2c3e50;
         }
-        
+
         .value {
-            font-family: 'Courier New', monospace;
-            color: #27ae60;
+            font-family: "JetBrains Mono", "Courier New", monospace;
+            color: var(--success);
         }
-        
+
         .trilemma-scores {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
+            gap: 16px;
+            margin-top: 20px;
         }
-        
+
         .trilemma-card {
-            background: white;
-            padding: 20px;
-            border-radius: 6px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            border-top: 4px solid #3498db;
+            border: 1px solid var(--border);
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 12px;
         }
-        
-        .trilemma-card h4 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-        }
-        
+
         .score-bar {
-            height: 20px;
-            background: #ecf0f1;
-            border-radius: 10px;
-            margin: 5px 0;
-            overflow: hidden;
+            height: 10px;
+            background: #e5e7eb;
+            border-radius: 999px;
+            margin: 6px 0 12px;
         }
-        
+
         .score-fill {
             height: 100%;
-            background: linear-gradient(90deg, #3498db, #2980b9);
-            border-radius: 10px;
-            transition: width 0.3s ease;
+            background: linear-gradient(90deg, #60a5fa, #2563eb);
+            border-radius: 999px;
         }
-        
+
+        footer {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
         a {
-            color: #3498db;
+            color: var(--accent);
             text-decoration: none;
         }
-        
+
         a:hover {
             text-decoration: underline;
         }
-        
-        footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #ecf0f1;
-            text-align: center;
-            color: #7f8c8d;
+
+        .pill-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
         }
-        
-        .limitations {
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 4px;
+
+        .pill {
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: var(--accent-weak);
+            color: #1e3a8a;
+            font-size: 0.85rem;
         }
-        
-        .limitations ul {
-            margin-left: 20px;
-            margin-top: 10px;
+
+        .limitations-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 12px;
         }
-        
-        .data-source {
-            background: #e8f4f8;
-            border-left: 4px solid #3498db;
-            padding: 15px;
-            margin: 15px 0;
-            border-radius: 4px;
+
+        .limitations-item {
+            border: 1px solid var(--border);
+            background: #f8fafc;
+            padding: 14px;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 720px) {
+            .hero {
+                padding: 28px;
+            }
+
+            .hero h1 {
+                font-size: 2.1rem;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Rust Market Ledger</h1>
-        <p class="subtitle">Consensus Algorithm Comparison</p>
-        
-        <div class="section">
+        <section class="hero">
+            <h1>Rust Market Ledger</h1>
+            <p>Explore a simulated consensus ledger for market execution. Compare strategies, review qualitative trade-offs, and understand the conditions behind each result before applying it to real-world workloads.</p>
+            <div class="hero-actions">
+                <span class="badge">Simulated data only</span>
+                <span class="badge">5 rounds per strategy</span>
+                <span class="badge">100 blocks per round</span>
+            </div>
+        </section>
+
+        <section class="section">
             <h2>Strategy Query Panel</h2>
-            <div class="strategy-panel">
+            <p class="subtext">Select a consensus strategy to load its simulated performance profile.</p>
+            <div class="card">
                 <select id="strategySelect" class="strategy-select">
                     <option value="">Select a consensus strategy...</option>
                     <option value="pbft">PBFT</option>
@@ -285,7 +341,7 @@
                     <option value="quorumless">Quorum-less</option>
                     <option value="flexiblepaxos">Flexible Paxos</option>
                 </select>
-                
+
                 <div id="strategyDashboard" class="strategy-dashboard" style="display: none;">
                     <div class="dashboard-card">
                         <h4>Latency</h4>
@@ -316,59 +372,59 @@
                         <div class="value" id="scalabilityValue">-</div>
                     </div>
                 </div>
+                <div class="data-note">
+                    <strong>Simulated metrics:</strong> Results are derived from mock executions (single machine, fixed parameters). They are representative for demo UX only and should not be interpreted as production benchmarks.
+                </div>
             </div>
-            
-            <div class="data-source">
-                <strong>Data Source:</strong> Simulated consensus execution on 100 blocks per round, 5 rounds per strategy. 
-                Metrics are calculated from execution time and commit status. Trilemma scores are qualitative assessments based on algorithm characteristics.
-            </div>
-        </div>
-        
-        <div class="section">
-            <h2>Parameters</h2>
+        </section>
+
+        <section class="section">
+            <h2>Scenario Parameters</h2>
+            <p class="subtext">Configuration used for the current simulation run.</p>
             <div class="params-grid">
                 <div class="param-item">
                     <strong>Blocks per round</strong>
-                    <span class="value">100</span>
+                    <span>100</span>
                 </div>
                 <div class="param-item">
                     <strong>Rounds per strategy</strong>
-                    <span class="value">5</span>
+                    <span>5</span>
                 </div>
                 <div class="param-item">
                     <strong>Total nodes</strong>
-                    <span class="value">4</span>
+                    <span>4</span>
                 </div>
                 <div class="param-item">
                     <strong>PBFT Quorum</strong>
-                    <span class="value">3 (2f+1)</span>
+                    <span>3 (2f+1)</span>
                 </div>
                 <div class="param-item">
                     <strong>Gossip Fanout</strong>
-                    <span class="value">2</span>
+                    <span>2</span>
                 </div>
                 <div class="param-item">
                     <strong>Eventual Delay</strong>
-                    <span class="value">500ms</span>
+                    <span>500ms</span>
                 </div>
                 <div class="param-item">
                     <strong>Quorum-less Threshold</strong>
-                    <span class="value">5.0</span>
+                    <span>5.0</span>
                 </div>
                 <div class="param-item">
                     <strong>Flexible Paxos Q1/Q2</strong>
-                    <span class="value">2/3</span>
+                    <span>2/3</span>
                 </div>
             </div>
-        </div>
-        
-        <div class="section">
-            <h2>Results vs. Limitations</h2>
+        </section>
+
+        <section class="section">
+            <h2>Results & Limitations</h2>
+            <p class="subtext">Review the simulated metrics or switch to the limitations view to understand what the demo does not capture.</p>
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('results')">Results</button>
                 <button class="tab" onclick="switchTab('limitations')">Limitations</button>
             </div>
-            
+
             <div id="resultsTab" class="tab-content active">
                 <table>
                     <thead>
@@ -418,9 +474,10 @@
                         </tr>
                     </tbody>
                 </table>
-                
-                <div class="section">
-                    <h3>Trilemma Scores</h3>
+
+                <div class="section" style="margin-top: 20px;">
+                    <h3>Trilemma Scores (Qualitative)</h3>
+                    <p class="subtext">Scored from 1 (low) to 5 (high) based on algorithm characteristics.</p>
                     <div class="trilemma-scores">
                         <div class="trilemma-card">
                             <h4>PBFT</h4>
@@ -431,7 +488,7 @@
                             <p><strong>Scalability:</strong> 2.0/5.0</p>
                             <div class="score-bar"><div class="score-fill" style="width: 40%"></div></div>
                         </div>
-                        
+
                         <div class="trilemma-card">
                             <h4>Gossip</h4>
                             <p><strong>Decentralization:</strong> 5.0/5.0</p>
@@ -441,7 +498,7 @@
                             <p><strong>Scalability:</strong> 5.0/5.0</p>
                             <div class="score-bar"><div class="score-fill" style="width: 100%"></div></div>
                         </div>
-                        
+
                         <div class="trilemma-card">
                             <h4>Eventual</h4>
                             <p><strong>Decentralization:</strong> 4.0/5.0</p>
@@ -451,7 +508,7 @@
                             <p><strong>Scalability:</strong> 4.0/5.0</p>
                             <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
                         </div>
-                        
+
                         <div class="trilemma-card">
                             <h4>Quorum-less</h4>
                             <p><strong>Decentralization:</strong> 4.0/5.0</p>
@@ -461,7 +518,7 @@
                             <p><strong>Scalability:</strong> 4.5/5.0</p>
                             <div class="score-bar"><div class="score-fill" style="width: 90%"></div></div>
                         </div>
-                        
+
                         <div class="trilemma-card">
                             <h4>Flexible Paxos</h4>
                             <p><strong>Decentralization:</strong> 4.0/5.0</p>
@@ -474,28 +531,51 @@
                     </div>
                 </div>
             </div>
-            
+
             <div id="limitationsTab" class="tab-content">
-                <div class="limitations">
-                    <h3>Limitations</h3>
-                    <ul>
-                        <li>Simulated network: single machine execution</li>
-                        <li>Simulated data: mock market data, not real feeds</li>
-                        <li>Simplified implementations for demonstration</li>
-                        <li>No actual Byzantine faults tested</li>
-                    </ul>
+                <div class="limitations-list">
+                    <div class="limitations-item">
+                        <strong>Environment</strong>
+                        <p class="subtext">Single machine simulation with no network turbulence.</p>
+                    </div>
+                    <div class="limitations-item">
+                        <strong>Market Data</strong>
+                        <p class="subtext">Mock order flow used for repeatable demo scenarios.</p>
+                    </div>
+                    <div class="limitations-item">
+                        <strong>Faults</strong>
+                        <p class="subtext">No Byzantine behavior or adversarial load injected.</p>
+                    </div>
+                    <div class="limitations-item">
+                        <strong>Implementation</strong>
+                        <p class="subtext">Simplified consensus loops focused on UX clarity.</p>
+                    </div>
+                </div>
+                <div class="data-note" style="margin-top: 16px;">
+                    <strong>Recommendation:</strong> Use this page to compare behavior patterns, then validate with production telemetry or a staging environment before making capacity decisions.
                 </div>
             </div>
-        </div>
-        
+        </section>
+
+        <section class="section">
+            <h2>What you can do next</h2>
+            <p class="subtext">Suggested follow-ups for turning this demo into an operational dashboard.</p>
+            <div class="pill-group">
+                <span class="pill">Connect live metrics</span>
+                <span class="pill">Add latency percentiles</span>
+                <span class="pill">Export CSV for review</span>
+                <span class="pill">Create alerts for error spikes</span>
+            </div>
+        </section>
+
         <footer>
             <p>
-                <a href="https://github.com/egpivo/rust-market-ledger">GitHub Repository</a> | 
+                <a href="https://github.com/egpivo/rust-market-ledger">GitHub Repository</a> |
                 <a href="https://github.com/egpivo/rust-market-ledger/tree/main/examples">Examples</a>
             </p>
         </footer>
     </div>
-    
+
     <script>
         const strategyData = {
             pbft: {
@@ -544,39 +624,39 @@
                 scalability: "3.0/5.0"
             }
         };
-        
-        document.getElementById('strategySelect').addEventListener('change', function(e) {
+
+        document.getElementById("strategySelect").addEventListener("change", function(e) {
             const selected = e.target.value;
-            const dashboard = document.getElementById('strategyDashboard');
-            
+            const dashboard = document.getElementById("strategyDashboard");
+
             if (selected && strategyData[selected]) {
                 const data = strategyData[selected];
-                document.getElementById('latencyValue').textContent = data.latency;
-                document.getElementById('throughputValue').textContent = data.throughput;
-                document.getElementById('commitRateValue').textContent = data.commitRate;
-                document.getElementById('errorRateValue').textContent = data.errorRate;
-                document.getElementById('decentralizationValue').textContent = data.decentralization;
-                document.getElementById('securityValue').textContent = data.security;
-                document.getElementById('scalabilityValue').textContent = data.scalability;
-                dashboard.style.display = 'grid';
+                document.getElementById("latencyValue").textContent = data.latency;
+                document.getElementById("throughputValue").textContent = data.throughput;
+                document.getElementById("commitRateValue").textContent = data.commitRate;
+                document.getElementById("errorRateValue").textContent = data.errorRate;
+                document.getElementById("decentralizationValue").textContent = data.decentralization;
+                document.getElementById("securityValue").textContent = data.security;
+                document.getElementById("scalabilityValue").textContent = data.scalability;
+                dashboard.style.display = "grid";
             } else {
-                dashboard.style.display = 'none';
+                dashboard.style.display = "none";
             }
         });
-        
+
         function switchTab(tabName) {
-            const tabs = document.querySelectorAll('.tab');
-            const contents = document.querySelectorAll('.tab-content');
-            
-            tabs.forEach(tab => tab.classList.remove('active'));
-            contents.forEach(content => content.classList.remove('active'));
-            
-            if (tabName === 'results') {
-                document.querySelector('.tab:first-child').classList.add('active');
-                document.getElementById('resultsTab').classList.add('active');
+            const tabs = document.querySelectorAll(".tab");
+            const contents = document.querySelectorAll(".tab-content");
+
+            tabs.forEach(tab => tab.classList.remove("active"));
+            contents.forEach(content => content.classList.remove("active"));
+
+            if (tabName === "results") {
+                document.querySelector(".tab:first-child").classList.add("active");
+                document.getElementById("resultsTab").classList.add("active");
             } else {
-                document.querySelector('.tab:last-child').classList.add('active');
-                document.getElementById('limitationsTab').classList.add('active');
+                document.querySelector(".tab:last-child").classList.add("active");
+                document.getElementById("limitationsTab").classList.add("active");
             }
         }
     </script>
