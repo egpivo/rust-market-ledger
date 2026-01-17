@@ -1,6 +1,6 @@
 # Consensus Comparison Examples
 
-## Teaching Comparison Examples
+## Comparison Experiments
 
 These three examples demonstrate different consensus strategies while keeping the ETL + block generation flow unchanged.
 
@@ -15,7 +15,7 @@ These three examples demonstrate different consensus strategies while keeping th
 
 **File**: `examples/no_consensus_example.rs`
 
-**Teaching Purpose**:
+**Purpose**:
 - Understand consensus necessity vs cost
 - Compare latency and safety differences with PBFT
 
@@ -33,7 +33,7 @@ cargo run --example no_consensus_example
 
 **File**: `examples/simple_majority_example.rs`
 
-**Teaching Purpose**:
+**Purpose**:
 - Understand simple majority voting mechanism
 - Compare BFT advantages with PBFT
 - Show non-Byzantine vs Byzantine fault tolerance differences
@@ -52,7 +52,7 @@ cargo run --example simple_majority_example
 
 **File**: `examples/pbft_baseline_example.rs`
 
-**Teaching Purpose**:
+**Purpose**:
 - Show complete PBFT consensus flow
 - Serve as baseline for comparing with other consensus algorithms
 - Understand complete BFT consensus flow
@@ -81,7 +81,7 @@ cargo run --example run_all_comparisons
 
 **File**: `examples/trilemma_comparison.rs`
 
-**Teaching Purpose**:
+**Purpose**:
 - Combine performance metrics with qualitative trilemma scores
 - Report runtime and standard deviation for credibility
 - Provide a reproducible baseline for Medium articles

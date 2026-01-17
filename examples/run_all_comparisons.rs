@@ -1,4 +1,4 @@
-// Run all three teaching comparison examples
+// Run all three comparison experiments
 
 use rust_market_ledger::consensus::comparison::*;
 use rust_market_ledger::etl::{Block, MarketData};
@@ -142,7 +142,7 @@ async fn run_pbft_baseline_example() {
 #[tokio::main]
 async fn main() {
     println!("\n{}", "=".repeat(80));
-    println!("  Consensus Algorithm Teaching Comparison Examples");
+    println!("  Consensus Algorithm Comparison Experiments");
     println!("{}", "=".repeat(80));
     println!();
     println!("Press Enter to continue...");
