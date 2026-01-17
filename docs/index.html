@@ -334,7 +334,7 @@
                     <table style="margin-top: 12px;">
                         <thead>
                             <tr>
-                                <th>Block Index</th>
+                                <th>Block Hash</th>
                                 <th>BTC Price (USD)</th>
                                 <th>Source</th>
                                 <th>Timestamp</th>
@@ -342,64 +342,64 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="value">1</td>
+                                <td class="value" style="font-size: 0.85em;">a3f8c2d1e9b4...</td>
                                 <td class="value">50,240</td>
                                 <td>CoinGecko</td>
-                                <td class="value">...</td>
+                                <td class="value">2025-01-17 08:00:00</td>
                             </tr>
                             <tr>
-                                <td class="value">2</td>
+                                <td class="value" style="font-size: 0.85em;">7b2e9f4a1c6d...</td>
                                 <td class="value">49,890</td>
                                 <td>CoinGecko</td>
-                                <td class="value">...</td>
+                                <td class="value">2025-01-17 08:10:00</td>
                             </tr>
                             <tr>
-                                <td class="value">3</td>
+                                <td class="value" style="font-size: 0.85em;">5d1a8c9e3b7f...</td>
                                 <td class="value">50,560</td>
                                 <td>CoinGecko</td>
-                                <td class="value">...</td>
+                                <td class="value">2025-01-17 08:20:00</td>
                             </tr>
                             <tr>
-                                <td class="value">4</td>
+                                <td class="value" style="font-size: 0.85em;">2e4b9f7a8d3c...</td>
                                 <td class="value">51,120</td>
                                 <td>CoinGecko</td>
-                                <td class="value">...</td>
+                                <td class="value">2025-01-17 08:30:00</td>
                             </tr>
                             <tr>
-                                <td class="value">5</td>
+                                <td class="value" style="font-size: 0.85em;">9a3d7e2f6b8c...</td>
                                 <td class="value">50,680</td>
                                 <td>CoinGecko</td>
-                                <td class="value">...</td>
+                                <td class="value">2025-01-17 08:40:00</td>
                             </tr>
                             <tr>
-                                <td class="value">6</td>
+                                <td class="value" style="font-size: 0.85em;">4c1f9e8b7a2d...</td>
                                 <td class="value">49,950</td>
                                 <td>CoinGecko</td>
-                                <td class="value">...</td>
+                                <td class="value">2025-01-17 08:50:00</td>
                             </tr>
                             <tr>
-                                <td class="value">7</td>
+                                <td class="value" style="font-size: 0.85em;">8e5b3a9d2f7c...</td>
                                 <td class="value">50,430</td>
                                 <td>CoinGecko</td>
-                                <td class="value">...</td>
+                                <td class="value">2025-01-17 09:00:00</td>
                             </tr>
                             <tr>
-                                <td class="value">8</td>
+                                <td class="value" style="font-size: 0.85em;">3f7a2e9c6b4d...</td>
                                 <td class="value">51,290</td>
                                 <td>CoinGecko</td>
-                                <td class="value">...</td>
+                                <td class="value">2025-01-17 09:10:00</td>
                             </tr>
                             <tr>
-                                <td class="value">9</td>
+                                <td class="value" style="font-size: 0.85em;">6b8d4f2a9e7c...</td>
                                 <td class="value">50,710</td>
                                 <td>CoinGecko</td>
-                                <td class="value">...</td>
+                                <td class="value">2025-01-17 09:20:00</td>
                             </tr>
                             <tr>
-                                <td class="value">10</td>
+                                <td class="value" style="font-size: 0.85em;">1d5a8f3e9b7c...</td>
                                 <td class="value">50,180</td>
                                 <td>CoinGecko</td>
-                                <td class="value">...</td>
+                                <td class="value">2025-01-17 09:30:00</td>
                             </tr>
                         </tbody>
                     </table>
@@ -594,14 +594,24 @@
             canvas.width = rect.width || canvas.offsetWidth || 800;
             canvas.height = 300;
             
-            const padding = 40;
-            const width = canvas.width - 2 * padding;
-            const height = canvas.height - 2 * padding;
+            const leftPadding = 60; // More space for y-axis labels
+            const rightPadding = 20;
+            const topPadding = 30;
+            const bottomPadding = 50; // More space for x-axis timestamp labels
+            const width = canvas.width - leftPadding - rightPadding;
+            const height = canvas.height - topPadding - bottomPadding;
             
             // Generate price data: fluctuating around 50,000 USD (10 blocks)
-            const basePrice = 50000;
-            const fluctuation = 1500; // Max fluctuation
             const prices = [50240, 49890, 50560, 51120, 50680, 49950, 50430, 51290, 50710, 50180];
+            
+            // Generate timestamps: today's 10 time points (10 minutes apart, starting at 08:00)
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0);
+            const timestamps = [];
+            for (let i = 0; i < 10; i++) {
+                const ts = new Date(today.getTime() + i * 10 * 60 * 1000); // 10 minutes apart
+                timestamps.push(ts);
+            }
             
             const minPrice = Math.min(...prices);
             const maxPrice = Math.max(...prices);
@@ -640,30 +650,38 @@
             }
             ctx.stroke();
             
-            // Draw labels
+            // Draw axis labels
             ctx.fillStyle = '#6b7280';
             ctx.font = '12px Inter, sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText('Block Index', width / 2 + padding, height + padding + 30);
+            ctx.fillText('Timestamp', leftPadding + width / 2, topPadding + height + bottomPadding - 5);
             
             ctx.save();
-            ctx.translate(15, height / 2 + padding);
+            ctx.translate(15, topPadding + height / 2);
             ctx.rotate(-Math.PI / 2);
             ctx.textAlign = 'center';
             ctx.fillText('BTC Price (USD)', 0, 0);
             ctx.restore();
             
-            // Y-axis labels
+            // Y-axis labels (prices) - with proper padding
             ctx.textAlign = 'right';
-            ctx.fillText(Math.floor(minPrice).toLocaleString(), padding - 10, height + padding + 4);
-            ctx.fillText(Math.ceil(maxPrice).toLocaleString(), padding - 10, padding + 4);
-            
-            // X-axis labels (block indices)
-            ctx.textAlign = 'center';
             ctx.fillStyle = '#6b7280';
-            for (let i = 0; i < prices.length; i++) {
-                const x = padding + (i / (prices.length - 1)) * width;
-                ctx.fillText((i + 1).toString(), x, height + padding + 20);
+            ctx.font = '11px Inter, sans-serif';
+            const yMin = Math.floor(minPrice);
+            const yMax = Math.ceil(maxPrice);
+            const yMid = Math.floor((yMin + yMax) / 2);
+            ctx.fillText(yMin.toLocaleString(), leftPadding - 10, topPadding + height + 4);
+            ctx.fillText(yMid.toLocaleString(), leftPadding - 10, topPadding + height / 2 + 4);
+            ctx.fillText(yMax.toLocaleString(), leftPadding - 10, topPadding + 4);
+            
+            // X-axis labels (timestamps)
+            ctx.textAlign = 'center';
+            ctx.font = '10px Inter, sans-serif';
+            for (let i = 0; i < timestamps.length; i++) {
+                const x = leftPadding + (i / (timestamps.length - 1)) * width;
+                const hours = timestamps[i].getHours().toString().padStart(2, '0');
+                const minutes = timestamps[i].getMinutes().toString().padStart(2, '0');
+                ctx.fillText(`${hours}:${minutes}`, x, topPadding + height + 18);
             }
         }
         
