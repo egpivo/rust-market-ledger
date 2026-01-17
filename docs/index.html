@@ -545,8 +545,16 @@
             const canvas = document.getElementById('priceChart');
             if (!canvas) return;
             
+            // Check if canvas is visible
+            const setupTab = document.getElementById('setupTab');
+            if (!setupTab || !setupTab.classList.contains('active')) {
+                return;
+            }
+            
             const ctx = canvas.getContext('2d');
-            canvas.width = canvas.offsetWidth;
+            // Set actual pixel dimensions (not just CSS size)
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width || canvas.offsetWidth || 800;
             canvas.height = 300;
             
             const padding = 40;
@@ -626,6 +634,8 @@
             } else if (tabName === "setup") {
                 document.querySelector(".tab:nth-child(2)").classList.add("active");
                 document.getElementById("setupTab").classList.add("active");
+                // Draw chart when setup tab is shown
+                setTimeout(drawPriceChart, 100);
             } else {
                 document.querySelector(".tab:last-child").classList.add("active");
                 document.getElementById("resultsTab").classList.add("active");
