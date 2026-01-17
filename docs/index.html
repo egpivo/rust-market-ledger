@@ -253,7 +253,7 @@
         }
 
         .card {
-            background: var(--card);
+            background: #f9fafb;
             border: 1px solid var(--border);
             padding: 18px;
             border-radius: 12px;
@@ -285,95 +285,15 @@
 
         <section class="section">
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('setup')">Setup & Parameters</button>
-                <button class="tab" onclick="switchTab('definitions')">Metrics & Algorithms</button>
-                <button class="tab" onclick="switchTab('results')">Results</button>
+                <button class="tab active" onclick="switchTab('goal')">Goal & Metrics</button>
+                <button class="tab" onclick="switchTab('setup')">Data and Env Setups</button>
             </div>
 
-            <div id="setupTab" class="tab-content active">
-                <h2>Goal & Data Setup</h2>
-                <p class="subtext">Compare consensus algorithms using the same test blocks to understand trade-offs.</p>
-                
-                <div class="card">
-                    <h3>Data Simulation Process</h3>
-                    <ol>
-                        <li>Generate 100 test blocks with mock market data (BTC price variations)</li>
-                        <li>Each strategy runs on the same 100 blocks for fair comparison</li>
-                        <li>Repeat 5 rounds per strategy to calculate mean ± std dev</li>
-                        <li>For each block: measure execution time from <code>strategy.execute(block)</code> start to end</li>
-                        <li>Collect metrics: latency, throughput, commit/error rates</li>
-                    </ol>
-                </div>
+            <div id="goalTab" class="tab-content active">
+                <h2>Goal</h2>
+                <p class="subtext">Compare consensus algorithms using the same test blocks to understand performance trade-offs and trilemma characteristics.</p>
 
-                <div class="card">
-                    <h3>Scenario Parameters</h3>
-                    <div class="params-grid">
-                        <div class="param-item">
-                            <strong>Blocks per round</strong>
-                            <span>100</span>
-                        </div>
-                        <div class="param-item">
-                            <strong>Rounds per strategy</strong>
-                            <span>5</span>
-                        </div>
-                        <div class="param-item">
-                            <strong>Total nodes</strong>
-                            <span>4</span>
-                        </div>
-                        <div class="param-item">
-                            <strong>PBFT Quorum</strong>
-                            <span>3 (2f+1)</span>
-                        </div>
-                        <div class="param-item">
-                            <strong>Gossip Fanout</strong>
-                            <span>2</span>
-                        </div>
-                        <div class="param-item">
-                            <strong>Eventual Delay</strong>
-                            <span>500ms</span>
-                        </div>
-                        <div class="param-item">
-                            <strong>Quorum-less Threshold</strong>
-                            <span>5.0</span>
-                        </div>
-                        <div class="param-item">
-                            <strong>Flexible Paxos Q1/Q2</strong>
-                            <span>2/3</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="data-note">
-                    <strong>Note:</strong> All strategies use the same fixed parameters and test blocks. Results are simulated on a single machine and should not be interpreted as production benchmarks.
-                </div>
-            </div>
-
-            <div id="definitionsTab" class="tab-content">
-                <h2>Metric Definitions</h2>
-                <div class="card">
-                    <ul>
-                        <li><strong>Latency (ms):</strong> Time from block proposal to consensus result (average across all blocks)</li>
-                        <li><strong>Throughput (blocks/sec):</strong> Total blocks processed / total execution time</li>
-                        <li><strong>Commit Rate (%):</strong> (Committed blocks / Total blocks) × 100</li>
-                        <li><strong>Error Rate (%):</strong> (Blocks with errors / Total blocks) × 100</li>
-                        <li><strong>Trilemma Scores:</strong> Qualitative assessment (1-5 scale) based on algorithm characteristics</li>
-                    </ul>
-                </div>
-
-                <h2 style="margin-top: 32px;">Consensus Algorithms</h2>
-                <div class="card">
-                    <ul>
-                        <li><strong>PBFT</strong> - Practical Byzantine Fault Tolerance (BFT, requires majority voting: 2f+1 out of 3f+1)</li>
-                        <li><strong>Gossip</strong> - Epidemic/gossip protocol (no majority voting, uses fanout propagation)</li>
-                        <li><strong>Eventual</strong> - Time-based commitment (eventual consistency, fixed delay)</li>
-                        <li><strong>Quorum-less</strong> - Weighted voting based on reputation (threshold-based, no fixed quorum)</li>
-                        <li><strong>Flexible Paxos</strong> - Flexible quorum Paxos (Q1 for phase-1, Q2 for phase-2, Q1+Q2 > nodes ensures intersection)</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div id="resultsTab" class="tab-content">
-                <h2>Performance Metrics</h2>
+                <h2 style="margin-top: 32px;">Performance Metrics</h2>
                 <table>
                     <thead>
                         <tr>
@@ -422,6 +342,17 @@
                         </tr>
                     </tbody>
                 </table>
+
+                <h2 style="margin-top: 32px;">Metric Definitions</h2>
+                <div class="card">
+                    <ul>
+                        <li><strong>Latency (ms):</strong> Time from block proposal to consensus result (average across all blocks)</li>
+                        <li><strong>Throughput (blocks/sec):</strong> Total blocks processed / total execution time</li>
+                        <li><strong>Commit Rate (%):</strong> (Committed blocks / Total blocks) × 100</li>
+                        <li><strong>Error Rate (%):</strong> (Blocks with errors / Total blocks) × 100</li>
+                        <li><strong>Trilemma Scores:</strong> Qualitative assessment (1-5 scale) based on algorithm characteristics</li>
+                    </ul>
+                </div>
 
                 <h2 style="margin-top: 32px;">Trilemma Scores (Qualitative)</h2>
                 <p class="subtext">Scored from 1 (low) to 5 (high) based on algorithm characteristics.</p>
@@ -476,6 +407,77 @@
                         <div class="score-bar"><div class="score-fill" style="width: 60%"></div></div>
                     </div>
                 </div>
+
+                <h2 style="margin-top: 32px;">Consensus Algorithms</h2>
+                <div class="card">
+                    <ul>
+                        <li><strong>PBFT</strong> - Practical Byzantine Fault Tolerance (BFT, requires majority voting: 2f+1 out of 3f+1)</li>
+                        <li><strong>Gossip</strong> - Epidemic/gossip protocol (no majority voting, uses fanout propagation)</li>
+                        <li><strong>Eventual</strong> - Time-based commitment (eventual consistency, fixed delay)</li>
+                        <li><strong>Quorum-less</strong> - Weighted voting based on reputation (threshold-based, no fixed quorum)</li>
+                        <li><strong>Flexible Paxos</strong> - Flexible quorum Paxos (Q1 for phase-1, Q2 for phase-2, Q1+Q2 > nodes ensures intersection)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="setupTab" class="tab-content">
+                <h2>Data Simulation Process</h2>
+                <div class="card">
+                    <ol>
+                        <li>Generate 100 test blocks with mock market data (BTC price variations)</li>
+                        <li>Each strategy runs on the same 100 blocks for fair comparison</li>
+                        <li>Repeat 5 rounds per strategy to calculate mean ± std dev</li>
+                        <li>For each block: measure execution time from <code>strategy.execute(block)</code> start to end</li>
+                        <li>Collect metrics: latency, throughput, commit/error rates</li>
+                    </ol>
+                </div>
+
+                <h2 style="margin-top: 32px;">Scenario Parameters</h2>
+                <div class="params-grid">
+                    <div class="param-item">
+                        <strong>Blocks per round</strong>
+                        <span>100</span>
+                    </div>
+                    <div class="param-item">
+                        <strong>Rounds per strategy</strong>
+                        <span>5</span>
+                    </div>
+                    <div class="param-item">
+                        <strong>Total nodes</strong>
+                        <span>4</span>
+                    </div>
+                    <div class="param-item">
+                        <strong>PBFT Quorum</strong>
+                        <span>3 (2f+1)</span>
+                    </div>
+                    <div class="param-item">
+                        <strong>Gossip Fanout</strong>
+                        <span>2</span>
+                    </div>
+                    <div class="param-item">
+                        <strong>Eventual Delay</strong>
+                        <span>500ms</span>
+                    </div>
+                    <div class="param-item">
+                        <strong>Quorum-less Threshold</strong>
+                        <span>5.0</span>
+                    </div>
+                    <div class="param-item">
+                        <strong>Flexible Paxos Q1/Q2</strong>
+                        <span>2/3</span>
+                    </div>
+                </div>
+
+                <h2 style="margin-top: 32px;">Environment Setup</h2>
+                <div class="data-note">
+                    <strong>Simulation Environment:</strong>
+                    <ul style="margin-top: 10px;">
+                        <li>Single machine execution (no actual network)</li>
+                        <li>Mock market data (not real feeds)</li>
+                        <li>Simplified consensus implementations for demonstration</li>
+                        <li>No Byzantine faults or adversarial load tested</li>
+                    </ul>
+                </div>
             </div>
         </section>
 
@@ -495,15 +497,12 @@
             tabs.forEach(tab => tab.classList.remove("active"));
             contents.forEach(content => content.classList.remove("active"));
 
-            if (tabName === "setup") {
+            if (tabName === "goal") {
                 document.querySelector(".tab:first-child").classList.add("active");
-                document.getElementById("setupTab").classList.add("active");
-            } else if (tabName === "definitions") {
-                document.querySelector(".tab:nth-child(2)").classList.add("active");
-                document.getElementById("definitionsTab").classList.add("active");
+                document.getElementById("goalTab").classList.add("active");
             } else {
                 document.querySelector(".tab:last-child").classList.add("active");
-                document.getElementById("resultsTab").classList.add("active");
+                document.getElementById("setupTab").classList.add("active");
             }
         }
     </script>
