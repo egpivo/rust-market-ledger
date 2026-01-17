@@ -279,17 +279,17 @@
         </section>
 
         <section class="section">
-            <div class="tabs">
-                <button class="tab active" onclick="switchTab('goal')">Goal & Metrics</button>
-                <button class="tab" onclick="switchTab('setup')">Data and Env Setups</button>
-                <button class="tab" onclick="switchTab('results')">Results</button>
+            <div class="tabs" role="tablist" aria-label="Consensus demo sections">
+                <button class="tab active" id="goalTabButton" role="tab" aria-selected="true" aria-controls="goalTab" onclick="switchTab('goal')">Goal & Metrics</button>
+                <button class="tab" id="setupTabButton" role="tab" aria-selected="false" aria-controls="setupTab" onclick="switchTab('setup')">Data & Environment Setup</button>
+                <button class="tab" id="resultsTabButton" role="tab" aria-selected="false" aria-controls="resultsTab" onclick="switchTab('results')">Results</button>
             </div>
 
-            <div id="goalTab" class="tab-content active">
+            <div id="goalTab" class="tab-content active" role="tabpanel" aria-labelledby="goalTabButton">
                 <h2>Goal</h2>
                 <p class="subtext">Compare consensus algorithms using the same test blocks to understand performance trade-offs and trilemma characteristics.</p>
                 <div class="data-note" style="margin-top: 20px;">
-                    <strong>Experimental Context:</strong> This is a conceptual demonstration using simulated data and simplified consensus implementations. Metric values are illustrative and reflect simulator characteristics rather than production system performance. See "Data and Env Setups" tab for simulation details.
+                    <strong>Experimental Context:</strong> This is a conceptual demonstration using simulated data and simplified consensus implementations. Metric values are illustrative and reflect simulator characteristics rather than production system performance. See "Data & Environment Setup" tab for simulation details.
                 </div>
 
                 <h2 style="margin-top: 32px;">Metric Definitions</h2>
@@ -315,7 +315,7 @@
                 </div>
             </div>
 
-            <div id="setupTab" class="tab-content">
+            <div id="setupTab" class="tab-content" role="tabpanel" aria-labelledby="setupTabButton">
                 <h2>Data Simulation Process</h2>
                 <div class="card">
                     <ol>
@@ -459,9 +459,9 @@
                 </div>
             </div>
 
-            <div id="resultsTab" class="tab-content">
+            <div id="resultsTab" class="tab-content" role="tabpanel" aria-labelledby="resultsTabButton">
                 <div class="data-note" style="margin-bottom: 24px;">
-                    <strong>Note:</strong> Values shown are illustrative and based on simulator characteristics. For detailed analysis and Medium article context, see experimental design documentation. These metrics demonstrate relative trade-offs between algorithms rather than production benchmarks.
+                    <strong>Note:</strong> Values shown are illustrative and based on simulator characteristics. For detailed analysis, see experimental design documentation. These metrics demonstrate relative trade-offs between algorithms rather than production benchmarks.
                 </div>
                 <h2>Performance Metrics</h2>
                 <table>
@@ -605,8 +605,7 @@
             const prices = [50240, 49890, 50560, 51120, 50680, 49950, 50430, 51290, 50710, 50180];
             
             // Generate timestamps: today's 10 time points (10 minutes apart, starting at 08:00)
-            const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0, 0);
+            const today = new Date(2025, 0, 17, 8, 0, 0);
             const timestamps = [];
             for (let i = 0; i < 10; i++) {
                 const ts = new Date(today.getTime() + i * 10 * 60 * 1000); // 10 minutes apart
@@ -698,19 +697,28 @@
             const tabs = document.querySelectorAll(".tab");
             const contents = document.querySelectorAll(".tab-content");
 
-            tabs.forEach(tab => tab.classList.remove("active"));
+            tabs.forEach(tab => {
+                tab.classList.remove("active");
+                tab.setAttribute("aria-selected", "false");
+            });
             contents.forEach(content => content.classList.remove("active"));
 
             if (tabName === "goal") {
-                document.querySelector(".tab:first-child").classList.add("active");
+                const activeTab = document.querySelector(".tab:first-child");
+                activeTab.classList.add("active");
+                activeTab.setAttribute("aria-selected", "true");
                 document.getElementById("goalTab").classList.add("active");
             } else if (tabName === "setup") {
-                document.querySelector(".tab:nth-child(2)").classList.add("active");
+                const activeTab = document.querySelector(".tab:nth-child(2)");
+                activeTab.classList.add("active");
+                activeTab.setAttribute("aria-selected", "true");
                 document.getElementById("setupTab").classList.add("active");
                 // Draw chart when setup tab is shown
                 setTimeout(drawPriceChart, 100);
             } else {
-                document.querySelector(".tab:last-child").classList.add("active");
+                const activeTab = document.querySelector(".tab:last-child");
+                activeTab.classList.add("active");
+                activeTab.setAttribute("aria-selected", "true");
                 document.getElementById("resultsTab").classList.add("active");
             }
         }
