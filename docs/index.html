@@ -330,9 +330,33 @@
         </section>
 
         <section class="section">
-            <h2>Strategy Query Panel</h2>
-            <p class="subtext">Select a consensus strategy to load its simulated performance profile.</p>
+            <h2>Data Generation & Metric Definitions</h2>
+            
+            <div class="card" style="margin-bottom: 20px;">
+                <h3 style="margin-bottom: 12px; font-size: 1.2rem;">How data is generated</h3>
+                <ol style="margin-left: 20px; line-height: 2;">
+                    <li>Generate 100 test blocks with mock market data</li>
+                    <li>Run each strategy on the same 100 blocks (5 rounds per strategy)</li>
+                    <li>For each block: measure execution time from <code>strategy.execute(block)</code> start to end</li>
+                    <li>Calculate metrics: average latency, throughput, commit/error rates across all blocks</li>
+                    <li>Report mean ± standard deviation across 5 rounds</li>
+                </ol>
+            </div>
+
+            <div class="card" style="margin-bottom: 20px;">
+                <h3 style="margin-bottom: 12px; font-size: 1.2rem;">Metric definitions</h3>
+                <ul style="margin-left: 20px; line-height: 2;">
+                    <li><strong>Latency (ms):</strong> Time from block proposal to consensus result (average across all blocks)</li>
+                    <li><strong>Throughput (blocks/sec):</strong> Total blocks processed / total execution time</li>
+                    <li><strong>Commit Rate (%):</strong> (Committed blocks / Total blocks) × 100</li>
+                    <li><strong>Error Rate (%):</strong> (Blocks with errors / Total blocks) × 100</li>
+                    <li><strong>Trilemma Scores:</strong> Qualitative assessment (1-5 scale) based on algorithm characteristics</li>
+                </ul>
+            </div>
+
             <div class="card">
+                <h3 style="margin-bottom: 12px; font-size: 1.2rem;">Strategy Query Panel</h3>
+                <p class="subtext">Select a strategy to view its metrics.</p>
                 <select id="strategySelect" class="strategy-select">
                     <option value="">Select a consensus strategy...</option>
                     <option value="pbft">PBFT</option>
@@ -371,9 +395,6 @@
                         <h4>Scalability</h4>
                         <div class="value" id="scalabilityValue">-</div>
                     </div>
-                </div>
-                <div class="data-note">
-                    <strong>Simulated metrics:</strong> Results are derived from mock executions (single machine, fixed parameters). They are representative for demo UX only and should not be interpreted as production benchmarks.
                 </div>
             </div>
         </section>
