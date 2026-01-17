@@ -409,15 +409,30 @@ pub async fn benchmark_consensus_strategy(
         Some(0.3) // Lower cost for non-majority
     };
 
-    // Block proposal randomness: simplified entropy measure
-    // In simulation, assume uniform distribution = high randomness
-    let block_proposal_randomness = Some(0.8);
+    // Block proposal randomness: entropy measure based on algorithm characteristics
+    // PBFT: deterministic primary (sequence % N) -> low randomness
+    // Gossip: any node can initiate, propagation is random -> high randomness
+    // Eventual: any node can propose -> high randomness
+    // Quorum-less: any node can propose but weighted -> medium randomness
+    // Flexible Paxos: has proposer selection -> medium-low randomness
+    let block_proposal_randomness = match strategy.name() {
+        "PBFT" => Some(0.3),              // Deterministic primary selection
+        "Gossip Protocol" => Some(0.9),   // High randomness in gossip propagation
+        "Eventual Consistency" => Some(0.8), // Any node can propose
+        "Quorum-less (Weighted)" => Some(0.6), // Weighted but any node can propose
+        "Flexible Paxos" => Some(0.5),    // Proposer selection but more flexible than PBFT
+        _ => Some(0.7),                   // Default for other strategies
+    };
 
-    // Hashing power / token concentration: not applicable in simulation
-    // Set to None or provide placeholder values
+    // Hashing power / token concentration / wealth distribution:
+    // Not measurable in simulation environment (no actual PoW or token economics)
+    // Set to None to indicate N/A in simulation context
     let hashing_power_distribution = None;
     let token_concentration = None;
     let wealth_distribution = None;
+    
+    // Geographical diversity: not applicable in single-machine simulation
+    // Would require actual node location data
     let geographical_diversity = None;
 
     ConsensusMetrics {
