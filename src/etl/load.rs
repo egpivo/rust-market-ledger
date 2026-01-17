@@ -1,7 +1,7 @@
 use crate::etl::Block;
 use rusqlite::{params, Connection};
 use std::sync::{Arc, Mutex};
-use tracing::{info, debug};
+use tracing::{debug, info};
 
 #[derive(Debug)]
 pub enum DatabaseError {
@@ -47,7 +47,7 @@ impl DatabaseManager {
     /// Initialize the database schema with indexes for better performance
     pub fn init(&self) -> DbResult<()> {
         let conn = self.conn.lock().unwrap();
-        
+
         conn.execute(
             "CREATE TABLE IF NOT EXISTS blockchain (
                 id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,12 +66,12 @@ impl DatabaseManager {
             "CREATE INDEX IF NOT EXISTS idx_block_index ON blockchain(block_index)",
             [],
         )?;
-        
+
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_hash ON blockchain(hash)",
             [],
         )?;
-        
+
         conn.execute(
             "CREATE INDEX IF NOT EXISTS idx_timestamp ON blockchain(timestamp)",
             [],
@@ -97,7 +97,7 @@ impl DatabaseManager {
                 block.nonce
             ],
         )?;
-        
+
         info!(block_index = block.index, "Database: Block saved to SQLite");
         Ok(())
     }
@@ -106,7 +106,7 @@ impl DatabaseManager {
     pub fn save_blocks(&self, blocks: &[Block]) -> DbResult<usize> {
         let mut conn = self.conn.lock().unwrap();
         let tx = conn.transaction()?;
-        
+
         let mut count = 0;
         for block in blocks {
             let data_json = serde_json::to_string(&block.data)
@@ -126,7 +126,7 @@ impl DatabaseManager {
             )?;
             count += 1;
         }
-        
+
         tx.commit()?;
         info!(block_count = count, "Database: Saved blocks in batch");
         Ok(count)
@@ -136,7 +136,7 @@ impl DatabaseManager {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT block_index, timestamp, data_json, prev_hash, hash, nonce 
-             FROM blockchain WHERE block_index = ?"
+             FROM blockchain WHERE block_index = ?",
         )?;
 
         let block_result = stmt.query_row([index], |row| {
@@ -147,8 +147,14 @@ impl DatabaseManager {
             let hash: String = row.get(4)?;
             let nonce: u64 = row.get(5)?;
 
-            let data: Vec<crate::etl::MarketData> = serde_json::from_str(&data_json)
-                .map_err(|_e| rusqlite::Error::InvalidColumnType(2, "data_json".to_string(), rusqlite::types::Type::Text))?;
+            let data: Vec<crate::etl::MarketData> =
+                serde_json::from_str(&data_json).map_err(|_e| {
+                    rusqlite::Error::InvalidColumnType(
+                        2,
+                        "data_json".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?;
 
             Ok(Block {
                 index: idx,
@@ -162,9 +168,10 @@ impl DatabaseManager {
 
         match block_result {
             Ok(block) => Ok(block),
-            Err(rusqlite::Error::QueryReturnedNoRows) => {
-                Err(DatabaseError::NotFound(format!("Block with index {} not found", index)))
-            }
+            Err(rusqlite::Error::QueryReturnedNoRows) => Err(DatabaseError::NotFound(format!(
+                "Block with index {} not found",
+                index
+            ))),
             Err(e) => Err(DatabaseError::Sqlite(e)),
         }
     }
@@ -173,7 +180,7 @@ impl DatabaseManager {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT block_index, timestamp, data_json, prev_hash, hash, nonce 
-             FROM blockchain WHERE hash = ?"
+             FROM blockchain WHERE hash = ?",
         )?;
 
         let block_result = stmt.query_row([hash], |row| {
@@ -184,8 +191,14 @@ impl DatabaseManager {
             let hash: String = row.get(4)?;
             let nonce: u64 = row.get(5)?;
 
-            let data: Vec<crate::etl::MarketData> = serde_json::from_str(&data_json)
-                .map_err(|_e| rusqlite::Error::InvalidColumnType(2, "data_json".to_string(), rusqlite::types::Type::Text))?;
+            let data: Vec<crate::etl::MarketData> =
+                serde_json::from_str(&data_json).map_err(|_e| {
+                    rusqlite::Error::InvalidColumnType(
+                        2,
+                        "data_json".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?;
 
             Ok(Block {
                 index: idx,
@@ -199,9 +212,10 @@ impl DatabaseManager {
 
         match block_result {
             Ok(block) => Ok(block),
-            Err(rusqlite::Error::QueryReturnedNoRows) => {
-                Err(DatabaseError::NotFound(format!("Block with hash {} not found", hash)))
-            }
+            Err(rusqlite::Error::QueryReturnedNoRows) => Err(DatabaseError::NotFound(format!(
+                "Block with hash {} not found",
+                hash
+            ))),
             Err(e) => Err(DatabaseError::Sqlite(e)),
         }
     }
@@ -210,7 +224,7 @@ impl DatabaseManager {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT block_index, timestamp, data_json, prev_hash, hash, nonce 
-             FROM blockchain ORDER BY block_index DESC LIMIT 1"
+             FROM blockchain ORDER BY block_index DESC LIMIT 1",
         )?;
 
         let block_result = stmt.query_row([], |row| {
@@ -221,8 +235,14 @@ impl DatabaseManager {
             let hash: String = row.get(4)?;
             let nonce: u64 = row.get(5)?;
 
-            let data: Vec<crate::etl::MarketData> = serde_json::from_str(&data_json)
-                .map_err(|_e| rusqlite::Error::InvalidColumnType(2, "data_json".to_string(), rusqlite::types::Type::Text))?;
+            let data: Vec<crate::etl::MarketData> =
+                serde_json::from_str(&data_json).map_err(|_e| {
+                    rusqlite::Error::InvalidColumnType(
+                        2,
+                        "data_json".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?;
 
             Ok(Block {
                 index: idx,
@@ -244,11 +264,11 @@ impl DatabaseManager {
     /// Query latest blocks and return them (instead of just printing)
     pub fn query_latest_blocks(&self, limit: u64) -> DbResult<Vec<Block>> {
         let limit_i64 = limit.min(i64::MAX as u64) as i64;
-        
+
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT block_index, timestamp, data_json, prev_hash, hash, nonce 
-             FROM blockchain ORDER BY block_index DESC LIMIT ?"
+             FROM blockchain ORDER BY block_index DESC LIMIT ?",
         )?;
 
         let rows = stmt.query_map([limit_i64], |row| {
@@ -259,8 +279,14 @@ impl DatabaseManager {
             let hash: String = row.get(4)?;
             let nonce: u64 = row.get(5)?;
 
-            let data: Vec<crate::etl::MarketData> = serde_json::from_str(&data_json)
-                .map_err(|_e| rusqlite::Error::InvalidColumnType(2, "data_json".to_string(), rusqlite::types::Type::Text))?;
+            let data: Vec<crate::etl::MarketData> =
+                serde_json::from_str(&data_json).map_err(|_e| {
+                    rusqlite::Error::InvalidColumnType(
+                        2,
+                        "data_json".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?;
 
             Ok(Block {
                 index: idx,
@@ -281,11 +307,11 @@ impl DatabaseManager {
 
     pub fn print_latest_blocks(&self, limit: u64) -> DbResult<()> {
         let blocks = self.query_latest_blocks(limit)?;
-        
+
         info!("Audit: Verifying latest blocks in DB");
         for block in blocks {
-            let data_preview = serde_json::to_string(&block.data)
-                .unwrap_or_else(|_| "Invalid JSON".to_string());
+            let data_preview =
+                serde_json::to_string(&block.data).unwrap_or_else(|_| "Invalid JSON".to_string());
             debug!(
                 block_index = block.index,
                 hash_preview = &block.hash[0..8.min(block.hash.len())],
@@ -306,12 +332,12 @@ impl DatabaseManager {
     pub fn get_blocks_range(&self, start_index: u64, end_index: u64) -> DbResult<Vec<Block>> {
         let start_i64 = start_index as i64;
         let end_i64 = end_index as i64;
-        
+
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT block_index, timestamp, data_json, prev_hash, hash, nonce 
              FROM blockchain WHERE block_index >= ? AND block_index <= ? 
-             ORDER BY block_index ASC"
+             ORDER BY block_index ASC",
         )?;
 
         let rows = stmt.query_map(params![start_i64, end_i64], |row| {
@@ -322,8 +348,14 @@ impl DatabaseManager {
             let hash: String = row.get(4)?;
             let nonce: u64 = row.get(5)?;
 
-            let data: Vec<crate::etl::MarketData> = serde_json::from_str(&data_json)
-                .map_err(|_e| rusqlite::Error::InvalidColumnType(2, "data_json".to_string(), rusqlite::types::Type::Text))?;
+            let data: Vec<crate::etl::MarketData> =
+                serde_json::from_str(&data_json).map_err(|_e| {
+                    rusqlite::Error::InvalidColumnType(
+                        2,
+                        "data_json".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?;
 
             Ok(Block {
                 index: idx,
@@ -346,7 +378,7 @@ impl DatabaseManager {
     pub fn verify_chain(&self) -> DbResult<bool> {
         let limit = i64::MAX as u64;
         let blocks = self.query_latest_blocks(limit)?;
-        
+
         if blocks.is_empty() {
             return Ok(true);
         }
@@ -374,33 +406,28 @@ impl DatabaseManager {
     /// Delete a block by index (use with caution)
     pub fn delete_block(&self, index: u64) -> DbResult<bool> {
         let conn = self.conn.lock().unwrap();
-        let rows_affected = conn.execute(
-            "DELETE FROM blockchain WHERE block_index = ?",
-            [index],
-        )?;
-        
+        let rows_affected =
+            conn.execute("DELETE FROM blockchain WHERE block_index = ?", [index])?;
+
         Ok(rows_affected > 0)
     }
 
     pub fn get_stats(&self) -> DbResult<DatabaseStats> {
         let conn = self.conn.lock().unwrap();
-        
-        let total_blocks: u64 = conn.query_row(
-            "SELECT COUNT(*) FROM blockchain",
-            [],
-            |row| row.get(0)
-        )?;
+
+        let total_blocks: u64 =
+            conn.query_row("SELECT COUNT(*) FROM blockchain", [], |row| row.get(0))?;
 
         let (min_index, max_index): (Option<u64>, Option<u64>) = conn.query_row(
             "SELECT MIN(block_index), MAX(block_index) FROM blockchain",
             [],
-            |row| Ok((row.get(0)?, row.get(1)?))
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )?;
 
         let (min_timestamp, max_timestamp): (Option<i64>, Option<i64>) = conn.query_row(
             "SELECT MIN(timestamp), MAX(timestamp) FROM blockchain",
             [],
-            |row| Ok((row.get(0)?, row.get(1)?))
+            |row| Ok((row.get(0)?, row.get(1)?)),
         )?;
 
         Ok(DatabaseStats {
@@ -428,15 +455,15 @@ mod tests {
     use super::*;
     use crate::etl::{Block, MarketData};
     use std::fs;
-    
+
     static INIT: std::sync::Once = std::sync::Once::new();
-    
+
     fn init() {
         INIT.call_once(|| {
             let _ = tracing_subscriber::fmt()
                 .with_env_filter(
                     tracing_subscriber::EnvFilter::try_from_default_env()
-                        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("error"))
+                        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("error")),
                 )
                 .with_test_writer()
                 .try_init();
@@ -484,17 +511,17 @@ mod tests {
         init();
         let test_db = "test_get_by_index.db";
         fs::remove_file(test_db).ok();
-        
+
         let db = DatabaseManager::new(test_db).unwrap();
         db.init().unwrap();
-        
+
         let block = create_test_block(1, "0000_genesis");
         db.save_block(&block).unwrap();
-        
+
         let retrieved = db.get_block_by_index(1).unwrap();
         assert_eq!(retrieved.index, 1);
         assert_eq!(retrieved.hash, block.hash);
-        
+
         fs::remove_file(test_db).ok();
     }
 
@@ -503,21 +530,21 @@ mod tests {
         init();
         let test_db = "test_get_by_hash.db";
         fs::remove_file(test_db).ok();
-        
+
         let db = DatabaseManager::new(test_db).unwrap();
         db.init().unwrap();
-        
+
         let block = create_test_block(1, "0000_genesis");
         db.save_block(&block).unwrap();
-        
+
         let retrieved = db.get_block_by_hash(&block.hash).unwrap();
         assert_eq!(retrieved.index, 1);
         assert_eq!(retrieved.hash, block.hash);
-        
+
         // Test not found
         let result = db.get_block_by_hash("nonexistent_hash");
         assert!(result.is_err());
-        
+
         fs::remove_file(test_db).ok();
     }
 
@@ -526,27 +553,27 @@ mod tests {
         init();
         let test_db = "test_latest.db";
         fs::remove_file(test_db).ok();
-        
+
         let db = DatabaseManager::new(test_db).unwrap();
         db.init().unwrap();
-        
+
         let latest = db.get_latest_block().unwrap();
         assert!(latest.is_none());
-        
+
         let block1 = create_test_block(1, "0000_genesis");
         db.save_block(&block1).unwrap();
-        
+
         let latest = db.get_latest_block().unwrap();
         assert!(latest.is_some());
         assert_eq!(latest.unwrap().index, 1);
-        
+
         let block2 = create_test_block(2, &block1.hash);
         db.save_block(&block2).unwrap();
-        
+
         let latest = db.get_latest_block().unwrap();
         assert!(latest.is_some());
         assert_eq!(latest.unwrap().index, 2);
-        
+
         fs::remove_file(test_db).ok();
     }
 
@@ -555,23 +582,23 @@ mod tests {
         init();
         let test_db = "test_query_latest.db";
         fs::remove_file(test_db).ok();
-        
+
         let db = DatabaseManager::new(test_db).unwrap();
         db.init().unwrap();
-        
+
         let block1 = create_test_block(1, "0000_genesis");
         let block2 = create_test_block(2, &block1.hash);
         let block3 = create_test_block(3, &block2.hash);
-        
+
         db.save_block(&block1).unwrap();
         db.save_block(&block2).unwrap();
         db.save_block(&block3).unwrap();
-        
+
         let blocks = db.query_latest_blocks(2).unwrap();
         assert_eq!(blocks.len(), 2);
         assert_eq!(blocks[0].index, 3);
         assert_eq!(blocks[1].index, 2);
-        
+
         fs::remove_file(test_db).ok();
     }
 
@@ -580,23 +607,23 @@ mod tests {
         init();
         let test_db = "test_range.db";
         fs::remove_file(test_db).ok();
-        
+
         let db = DatabaseManager::new(test_db).unwrap();
         db.init().unwrap();
-        
+
         let mut prev_hash = "0000_genesis".to_string();
         for i in 1..=5 {
             let block = create_test_block(i, &prev_hash);
             prev_hash = block.hash.clone();
             db.save_block(&block).unwrap();
         }
-        
+
         let blocks = db.get_blocks_range(2, 4).unwrap();
         assert_eq!(blocks.len(), 3);
         assert_eq!(blocks[0].index, 2);
         assert_eq!(blocks[1].index, 3);
         assert_eq!(blocks[2].index, 4);
-        
+
         fs::remove_file(test_db).ok();
     }
 
@@ -605,10 +632,10 @@ mod tests {
         init();
         let test_db = "test_batch.db";
         fs::remove_file(test_db).ok();
-        
+
         let db = DatabaseManager::new(test_db).unwrap();
         db.init().unwrap();
-        
+
         let mut blocks = Vec::new();
         let mut prev_hash = "0000_genesis".to_string();
         for i in 1..=3 {
@@ -616,13 +643,13 @@ mod tests {
             prev_hash = block.hash.clone();
             blocks.push(block);
         }
-        
+
         let saved = db.save_blocks(&blocks).unwrap();
         assert_eq!(saved, 3);
-        
+
         let count = db.get_block_count().unwrap();
         assert_eq!(count, 3);
-        
+
         fs::remove_file(test_db).ok();
     }
 
@@ -631,20 +658,20 @@ mod tests {
         init();
         let test_db = "test_verify_valid.db";
         fs::remove_file(test_db).ok();
-        
+
         let db = DatabaseManager::new(test_db).unwrap();
         db.init().unwrap();
-        
+
         let mut prev_hash = "0000_genesis".to_string();
         for i in 1..=3 {
             let block = create_test_block(i, &prev_hash);
             prev_hash = block.hash.clone();
             db.save_block(&block).unwrap();
         }
-        
+
         let is_valid = db.verify_chain().unwrap();
         assert!(is_valid);
-        
+
         fs::remove_file(test_db).ok();
     }
 
@@ -653,19 +680,19 @@ mod tests {
         init();
         let test_db = "test_verify_invalid.db";
         fs::remove_file(test_db).ok();
-        
+
         let db = DatabaseManager::new(test_db).unwrap();
         db.init().unwrap();
-        
+
         let block1 = create_test_block(1, "0000_genesis");
         db.save_block(&block1).unwrap();
-        
-        let mut block2 = create_test_block(2, "wrong_hash");
+
+        let block2 = create_test_block(2, "wrong_hash");
         db.save_block(&block2).unwrap();
-        
+
         let is_valid = db.verify_chain().unwrap();
         assert!(!is_valid);
-        
+
         fs::remove_file(test_db).ok();
     }
 
@@ -674,23 +701,23 @@ mod tests {
         init();
         let test_db = "test_delete.db";
         fs::remove_file(test_db).ok();
-        
+
         let db = DatabaseManager::new(test_db).unwrap();
         db.init().unwrap();
-        
+
         let block = create_test_block(1, "0000_genesis");
         db.save_block(&block).unwrap();
-        
+
         assert_eq!(db.get_block_count().unwrap(), 1);
-        
+
         let deleted = db.delete_block(1).unwrap();
         assert!(deleted);
-        
+
         assert_eq!(db.get_block_count().unwrap(), 0);
-        
+
         let deleted = db.delete_block(999).unwrap();
         assert!(!deleted);
-        
+
         fs::remove_file(test_db).ok();
     }
 
@@ -699,30 +726,30 @@ mod tests {
         init();
         let test_db = "test_stats.db";
         fs::remove_file(test_db).ok();
-        
+
         let db = DatabaseManager::new(test_db).unwrap();
         db.init().unwrap();
-        
+
         // Empty database
         let stats = db.get_stats().unwrap();
         assert_eq!(stats.total_blocks, 0);
         assert!(stats.min_index.is_none());
         assert!(stats.max_index.is_none());
-        
+
         let mut prev_hash = "0000_genesis".to_string();
         for i in 1..=3 {
             let block = create_test_block(i, &prev_hash);
             prev_hash = block.hash.clone();
             db.save_block(&block).unwrap();
         }
-        
+
         let stats = db.get_stats().unwrap();
         assert_eq!(stats.total_blocks, 3);
         assert_eq!(stats.min_index, Some(1));
         assert_eq!(stats.max_index, Some(3));
         assert!(stats.min_timestamp.is_some());
         assert!(stats.max_timestamp.is_some());
-        
+
         fs::remove_file(test_db).ok();
     }
 

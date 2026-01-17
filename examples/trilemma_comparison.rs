@@ -1,14 +1,16 @@
 //! Blockchain Trilemma Comparison Experiment
 
-use rust_market_ledger::consensus::comparison::*;
 use rust_market_ledger::consensus::algorithms::*;
+use rust_market_ledger::consensus::comparison::*;
 use rust_market_ledger::etl::{Block, MarketData};
 use std::sync::Arc;
 use std::time::Instant;
 
 #[path = "shared/mod.rs"]
 mod metrics;
-use metrics::{MetricsStdDev, calculate_average_metrics, calculate_metrics_std_dev, calculate_runtime_std_dev};
+use metrics::{
+    calculate_average_metrics, calculate_metrics_std_dev, calculate_runtime_std_dev, MetricsStdDev,
+};
 
 struct TrilemmaScores {
     decentralization: f64,
@@ -28,18 +30,18 @@ struct StrategyResult {
 #[tokio::main]
 async fn main() {
     let experiment_start = Instant::now();
-    
+
     println!("\n{}", "=".repeat(100));
     println!("  Blockchain Trilemma Comparison Experiment");
     println!("  Comparing: PBFT, Gossip, Eventual, Quorum-less, Flexible Paxos");
     println!("{}", "=".repeat(100));
     println!();
-    
+
     const BLOCKS_PER_ROUND: usize = 100;
     const ROUNDS: usize = 5;
     const TOTAL_NODES: usize = 4;
     const NODE_ID: usize = 0;
-    
+
     const PBFT_QUORUM: usize = 3;
     const GOSSIP_FANOUT: usize = 2;
     const EVENTUAL_DELAY_MS: u64 = 500;
@@ -47,26 +49,38 @@ async fn main() {
     const QUORUMLESS_THRESHOLD: f64 = 5.0;
     const FLEXIBLE_PAXOS_Q1: usize = 2;
     const FLEXIBLE_PAXOS_Q2: usize = 3;
-    
+
     println!("Experiment Configuration (FIXED for reproducibility):");
     println!("  Blocks per round: {}", BLOCKS_PER_ROUND);
-    println!("  Rounds per strategy: {} (for statistical significance)", ROUNDS);
+    println!(
+        "  Rounds per strategy: {} (for statistical significance)",
+        ROUNDS
+    );
     println!("  Total blocks per strategy: {}", BLOCKS_PER_ROUND * ROUNDS);
     println!("  Total nodes: {}", TOTAL_NODES);
     println!();
     println!("Consensus Algorithm Parameters:");
-    println!("  PBFT: quorum={} (2f+1, f=1, total={})", PBFT_QUORUM, TOTAL_NODES);
+    println!(
+        "  PBFT: quorum={} (2f+1, f=1, total={})",
+        PBFT_QUORUM, TOTAL_NODES
+    );
     println!("  Gossip: fanout={}", GOSSIP_FANOUT);
-    println!("  Eventual: delay={}ms, threshold={}", EVENTUAL_DELAY_MS, EVENTUAL_THRESHOLD);
+    println!(
+        "  Eventual: delay={}ms, threshold={}",
+        EVENTUAL_DELAY_MS, EVENTUAL_THRESHOLD
+    );
     println!("  Quorum-less: threshold={}", QUORUMLESS_THRESHOLD);
-    println!("  Flexible Paxos: Q1={}, Q2={}", FLEXIBLE_PAXOS_Q1, FLEXIBLE_PAXOS_Q2);
+    println!(
+        "  Flexible Paxos: Q1={}, Q2={}",
+        FLEXIBLE_PAXOS_Q1, FLEXIBLE_PAXOS_Q2
+    );
     println!();
     println!("Data Source: Simulated ETL data (offline/mock)");
     println!("Network: Simulated (single-machine simulation)");
     println!("  Note: PBFT has network handler but runs in simulated mode");
     println!("  Other algorithms use simulated consensus logic");
     println!();
-    
+
     let mut blocks: Vec<Block> = Vec::new();
     for i in 1..=BLOCKS_PER_ROUND {
         let previous_hash = if i == 1 {
@@ -74,7 +88,7 @@ async fn main() {
         } else {
             blocks[(i - 2) as usize].hash.clone()
         };
-        
+
         let mut block = Block {
             index: i as u64,
             timestamp: chrono::Utc::now().timestamp() + i as i64,
@@ -91,24 +105,28 @@ async fn main() {
         block.calculate_hash_with_nonce();
         blocks.push(block);
     }
-    
+
     println!("Generated {} test blocks", blocks.len());
     println!();
-    
+
     let node_addresses = vec![
         "127.0.0.1:8000".to_string(),
         "127.0.0.1:8001".to_string(),
         "127.0.0.1:8002".to_string(),
         "127.0.0.1:8003".to_string(),
     ];
-    
-    let pbft_manager = Arc::new(PBFTManager::new(NODE_ID, TOTAL_NODES, node_addresses.clone()));
+
+    let pbft_manager = Arc::new(PBFTManager::new(
+        NODE_ID,
+        TOTAL_NODES,
+        node_addresses.clone(),
+    ));
     let pbft_consensus = Arc::new(pbft::PBFTConsensus::new(
         pbft_manager.clone(),
         node_addresses.clone(),
         8000,
     ));
-    
+
     let strategies: Vec<(String, Arc<dyn ConsensusStrategy>)> = vec![
         (
             "PBFT".to_string(),
@@ -116,44 +134,49 @@ async fn main() {
         ),
         (
             "Gossip".to_string(),
-            Arc::new(ConsensusAlgorithmAdapter::new(
-                Arc::new(gossip::GossipConsensus::new(NODE_ID, TOTAL_NODES, GOSSIP_FANOUT))
-            )),
+            Arc::new(ConsensusAlgorithmAdapter::new(Arc::new(
+                gossip::GossipConsensus::new(NODE_ID, TOTAL_NODES, GOSSIP_FANOUT),
+            ))),
         ),
         (
             "Eventual".to_string(),
-            Arc::new(ConsensusAlgorithmAdapter::new(
-                Arc::new(eventual::EventualConsensus::new(NODE_ID, EVENTUAL_DELAY_MS, EVENTUAL_THRESHOLD))
-            )),
+            Arc::new(ConsensusAlgorithmAdapter::new(Arc::new(
+                eventual::EventualConsensus::new(NODE_ID, EVENTUAL_DELAY_MS, EVENTUAL_THRESHOLD),
+            ))),
         ),
         (
             "Quorum-less".to_string(),
-            Arc::new(ConsensusAlgorithmAdapter::new(
-                Arc::new(quorumless::QuorumlessConsensus::new(NODE_ID, QUORUMLESS_THRESHOLD))
-            )),
+            Arc::new(ConsensusAlgorithmAdapter::new(Arc::new(
+                quorumless::QuorumlessConsensus::new(NODE_ID, QUORUMLESS_THRESHOLD),
+            ))),
         ),
         (
             "Flexible Paxos".to_string(),
-            Arc::new(ConsensusAlgorithmAdapter::new(
-                Arc::new(flexible_paxos::FlexiblePaxos::new(NODE_ID, TOTAL_NODES, FLEXIBLE_PAXOS_Q1, FLEXIBLE_PAXOS_Q2))
-            )),
+            Arc::new(ConsensusAlgorithmAdapter::new(Arc::new(
+                flexible_paxos::FlexiblePaxos::new(
+                    NODE_ID,
+                    TOTAL_NODES,
+                    FLEXIBLE_PAXOS_Q1,
+                    FLEXIBLE_PAXOS_Q2,
+                ),
+            ))),
         ),
     ];
-    
+
     println!("Strategies to test:");
     for (i, (name, _)) in strategies.iter().enumerate() {
         println!("  {}. {}", i + 1, name);
     }
     println!();
-    
+
     let mut all_results: Vec<StrategyResult> = Vec::new();
-    
+
     for (strategy_name, strategy) in &strategies {
         println!("Testing {}...", strategy_name);
-        
+
         let mut round_metrics: Vec<ConsensusMetrics> = Vec::new();
         let mut round_runtimes: Vec<f64> = Vec::new();
-        
+
         for round in 1..=ROUNDS {
             print!("  Round {}/{}... ", round, ROUNDS);
             let round_start = Instant::now();
@@ -163,13 +186,13 @@ async fn main() {
             round_runtimes.push(round_elapsed);
             println!("Done ({:.2}s)", round_elapsed);
         }
-        
+
         let strategy_runtime = round_runtimes.iter().sum::<f64>() / round_runtimes.len() as f64;
         let avg_metrics = calculate_average_metrics(&round_metrics);
         let metrics_std_dev = calculate_metrics_std_dev(&round_metrics, &avg_metrics);
         let runtime_std_dev = calculate_runtime_std_dev(&round_runtimes);
         let trilemma = get_trilemma_scores(strategy_name);
-        
+
         all_results.push(StrategyResult {
             strategy_name: strategy_name.clone(),
             metrics: avg_metrics,
@@ -178,15 +201,18 @@ async fn main() {
             runtime_seconds: strategy_runtime,
             runtime_std_dev,
         });
-        
-        println!("  {} completed in {:.2}s\n", strategy_name, strategy_runtime);
+
+        println!(
+            "  {} completed in {:.2}s\n",
+            strategy_name, strategy_runtime
+        );
     }
-    
+
     let total_runtime = experiment_start.elapsed();
     print_runtime_summary(&all_results, total_runtime, ROUNDS);
     print_trilemma_comparison_table(&all_results, ROUNDS);
     print_trilemma_analysis(&all_results);
-    
+
     println!("{}", "=".repeat(100));
     println!(
         "Experiment completed in {:.2}s ({:.2} minutes)",
@@ -231,25 +257,32 @@ fn get_trilemma_scores(strategy_name: &str) -> TrilemmaScores {
     }
 }
 
-fn print_runtime_summary(results: &[StrategyResult], total_runtime: std::time::Duration, rounds: usize) {
+fn print_runtime_summary(
+    results: &[StrategyResult],
+    total_runtime: std::time::Duration,
+    rounds: usize,
+) {
     println!("\n{}", "=".repeat(120));
     println!("  Runtime Summary (for Medium article credibility)");
     println!("{}", "=".repeat(120));
     println!();
-    
+
     println!("Experiment Runtime Breakdown (Mean ± Std Dev):");
-    println!("{:<20} | {:>18} | {:>18} | {:>15}", 
-        "Strategy", "Runtime (s)", "Runtime (min)", "Blocks/sec");
+    println!(
+        "{:<20} | {:>18} | {:>18} | {:>15}",
+        "Strategy", "Runtime (s)", "Runtime (min)", "Blocks/sec"
+    );
     println!("{}", "-".repeat(120));
-    
+
     for result in results {
         let blocks_per_sec = if result.runtime_seconds > 0.0 {
             result.metrics.total_blocks as f64 / result.runtime_seconds
         } else {
             0.0
         };
-        
-        println!("{:<20} | {:>8.2} ± {:>6.2} | {:>8.2} ± {:>6.2} | {:>15.2}", 
+
+        println!(
+            "{:<20} | {:>8.2} ± {:>6.2} | {:>8.2} ± {:>6.2} | {:>15.2}",
             result.strategy_name,
             result.runtime_seconds,
             result.runtime_std_dev,
@@ -258,14 +291,16 @@ fn print_runtime_summary(results: &[StrategyResult], total_runtime: std::time::D
             blocks_per_sec
         );
     }
-    
+
     println!();
     println!("Total Experiment Runtime:");
-    println!("  {:.2} seconds ({:.2} minutes)", 
+    println!(
+        "  {:.2} seconds ({:.2} minutes)",
         total_runtime.as_secs_f64(),
-        total_runtime.as_secs_f64() / 60.0);
+        total_runtime.as_secs_f64() / 60.0
+    );
     println!();
-    
+
     println!("System Information (for reproducibility):");
     println!("  OS: {}", std::env::consts::OS);
     println!("  Architecture: {}", std::env::consts::ARCH);
@@ -278,14 +313,17 @@ fn print_runtime_summary(results: &[StrategyResult], total_runtime: std::time::D
         }
     }
     println!();
-    
+
     println!("Experimental Scope and Limitations:");
     println!("  - Network: Simulated (single-machine)");
     println!("  - PBFT: Has network handler but runs in simulated mode");
     println!("  - Other algorithms: Use simulated consensus logic");
     println!("  - Data: Simulated ETL data (offline/mock)");
     println!("  - All strategies use the SAME blocks for fair comparison");
-    println!("  - Results are averaged over {} runs with std dev reported", rounds);
+    println!(
+        "  - Results are averaged over {} runs with std dev reported",
+        rounds
+    );
     println!();
 }
 
@@ -294,12 +332,14 @@ fn print_trilemma_comparison_table(results: &[StrategyResult], rounds: usize) {
     println!("  Comprehensive Trilemma Comparison Table");
     println!("{}", "=".repeat(120));
     println!();
-    
+
     println!("Performance Metrics (Mean ± Std Dev, n={}):", rounds);
-    println!("{:<20} | {:>12} | {:>12} | {:>12} | {:>12} | {:>12}", 
-        "Strategy", "Latency (ms)", "Throughput", "Commit Rate", "Error Rate", "Integrity");
+    println!(
+        "{:<20} | {:>12} | {:>12} | {:>12} | {:>12} | {:>12}",
+        "Strategy", "Latency (ms)", "Throughput", "Commit Rate", "Error Rate", "Integrity"
+    );
     println!("{}", "-".repeat(120));
-    
+
     for result in results {
         println!(
             "{:<20} | {:>6.2} ± {:>5.2} | {:>6.2} ± {:>5.2} | {:>6.2} ± {:>5.2} | {:>6.2} ± {:>5.2} | {:>12}",
@@ -315,19 +355,22 @@ fn print_trilemma_comparison_table(results: &[StrategyResult], rounds: usize) {
             if result.metrics.data_integrity_maintained { "Yes" } else { "No" }
         );
     }
-    
+
     println!();
-    
+
     println!("Trilemma Scores (1-5 scale):");
-    println!("{:<20} | {:>15} | {:>15} | {:>15} | {:>15}", 
-        "Strategy", "Decentralization", "Security", "Scalability", "Total");
+    println!(
+        "{:<20} | {:>15} | {:>15} | {:>15} | {:>15}",
+        "Strategy", "Decentralization", "Security", "Scalability", "Total"
+    );
     println!("{}", "-".repeat(120));
-    
+
     for result in results {
-        let total = result.trilemma.decentralization + 
-                    result.trilemma.security + 
-                    result.trilemma.scalability;
-        println!("{:<20} | {:>15.1} | {:>15.1} | {:>15.1} | {:>15.1}", 
+        let total = result.trilemma.decentralization
+            + result.trilemma.security
+            + result.trilemma.scalability;
+        println!(
+            "{:<20} | {:>15.1} | {:>15.1} | {:>15.1} | {:>15.1}",
             result.strategy_name,
             result.trilemma.decentralization,
             result.trilemma.security,
@@ -335,7 +378,7 @@ fn print_trilemma_comparison_table(results: &[StrategyResult], rounds: usize) {
             total
         );
     }
-    
+
     println!();
 }
 
@@ -344,12 +387,15 @@ fn print_trilemma_analysis(results: &[StrategyResult]) {
     println!("  Trilemma Analysis: Trade-offs and Sacrifices");
     println!("{}", "=".repeat(120));
     println!();
-    
+
     for result in results {
         println!("{}:", result.strategy_name);
-        
+
         let scores = &result.trilemma;
-        let min_score = scores.decentralization.min(scores.security).min(scores.scalability);
+        let min_score = scores
+            .decentralization
+            .min(scores.security)
+            .min(scores.scalability);
         let sacrifice = if scores.scalability == min_score {
             "Scalability"
         } else if scores.security == min_score {
@@ -357,43 +403,67 @@ fn print_trilemma_analysis(results: &[StrategyResult]) {
         } else {
             "Decentralization"
         };
-        
+
         println!("  Primary Sacrifice: {}", sacrifice);
-        println!("  Performance: latency={:.2}ms, throughput={:.2} blocks/sec", 
-            result.metrics.avg_latency_ms, result.metrics.throughput_blocks_per_sec);
-        println!("  Reliability: commit_rate={:.2}%, error_rate={:.2}%", 
-            result.metrics.commit_rate, result.metrics.error_rate);
+        println!(
+            "  Performance: latency={:.2}ms, throughput={:.2} blocks/sec",
+            result.metrics.avg_latency_ms, result.metrics.throughput_blocks_per_sec
+        );
+        println!(
+            "  Reliability: commit_rate={:.2}%, error_rate={:.2}%",
+            result.metrics.commit_rate, result.metrics.error_rate
+        );
         println!();
     }
-    
+
     println!("Best Performers:");
     if let Some(best_latency) = results.iter().min_by(|a, b| {
-        a.metrics.avg_latency_ms.partial_cmp(&b.metrics.avg_latency_ms).unwrap()
+        a.metrics
+            .avg_latency_ms
+            .partial_cmp(&b.metrics.avg_latency_ms)
+            .unwrap()
     }) {
-        println!("  Lowest Latency: {} ({:.2} ms)", 
-            best_latency.strategy_name, best_latency.metrics.avg_latency_ms);
+        println!(
+            "  Lowest Latency: {} ({:.2} ms)",
+            best_latency.strategy_name, best_latency.metrics.avg_latency_ms
+        );
     }
-    
+
     if let Some(best_throughput) = results.iter().max_by(|a, b| {
-        a.metrics.throughput_blocks_per_sec.partial_cmp(&b.metrics.throughput_blocks_per_sec).unwrap()
+        a.metrics
+            .throughput_blocks_per_sec
+            .partial_cmp(&b.metrics.throughput_blocks_per_sec)
+            .unwrap()
     }) {
-        println!("  Highest Throughput: {} ({:.2} blocks/sec)", 
-            best_throughput.strategy_name, best_throughput.metrics.throughput_blocks_per_sec);
+        println!(
+            "  Highest Throughput: {} ({:.2} blocks/sec)",
+            best_throughput.strategy_name, best_throughput.metrics.throughput_blocks_per_sec
+        );
     }
-    
+
     if let Some(best_security) = results.iter().max_by(|a, b| {
-        a.trilemma.security.partial_cmp(&b.trilemma.security).unwrap()
+        a.trilemma
+            .security
+            .partial_cmp(&b.trilemma.security)
+            .unwrap()
     }) {
-        println!("  Highest Security: {} (score: {:.1})", 
-            best_security.strategy_name, best_security.trilemma.security);
+        println!(
+            "  Highest Security: {} (score: {:.1})",
+            best_security.strategy_name, best_security.trilemma.security
+        );
     }
-    
+
     if let Some(best_scalability) = results.iter().max_by(|a, b| {
-        a.trilemma.scalability.partial_cmp(&b.trilemma.scalability).unwrap()
+        a.trilemma
+            .scalability
+            .partial_cmp(&b.trilemma.scalability)
+            .unwrap()
     }) {
-        println!("  Highest Scalability: {} (score: {:.1})", 
-            best_scalability.strategy_name, best_scalability.trilemma.scalability);
+        println!(
+            "  Highest Scalability: {} (score: {:.1})",
+            best_scalability.strategy_name, best_scalability.trilemma.scalability
+        );
     }
-    
+
     println!();
 }

@@ -1,6 +1,6 @@
 pub mod extract;
-pub mod transform;
 pub mod load;
+pub mod transform;
 pub mod validator;
 
 use serde::{Deserialize, Serialize};
@@ -27,8 +27,10 @@ pub struct Block {
 impl Block {
     pub fn calculate_hash(&self) -> String {
         let data_str = serde_json::to_string(&self.data).unwrap_or_default();
-        let input = format!("{}{}{}{}{}",
-            self.index, self.timestamp, data_str, self.previous_hash, self.nonce);
+        let input = format!(
+            "{}{}{}{}{}",
+            self.index, self.timestamp, data_str, self.previous_hash, self.nonce
+        );
         let mut hasher = Sha256::new();
         hasher.update(input);
         format!("{:x}", hasher.finalize())

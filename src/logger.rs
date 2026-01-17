@@ -1,13 +1,9 @@
 //! Logging configuration
 
-use tracing_subscriber::{
-    fmt,
-    layer::SubscriberExt,
-    util::SubscriberInitExt,
-    EnvFilter,
-    fmt::time::ChronoLocal,
-};
 use std::sync::LazyLock;
+use tracing_subscriber::{
+    fmt, fmt::time::ChronoLocal, layer::SubscriberExt, util::SubscriberInitExt, EnvFilter,
+};
 
 static HOSTNAME: LazyLock<String> = LazyLock::new(|| {
     hostname::get()
@@ -33,7 +29,7 @@ fn get_memory_usage() -> String {
             }
         }
     }
-    
+
     #[cfg(target_os = "macos")]
     {
         use std::process::Command;
@@ -51,7 +47,7 @@ fn get_memory_usage() -> String {
             }
         }
     }
-    
+
     {
         use sysinfo::System;
         let mut system = System::new();
@@ -62,19 +58,16 @@ fn get_memory_usage() -> String {
             return format!("{:.1}M", memory_mb);
         }
     }
-    
+
     "N/A".to_string()
 }
 
 #[allow(dead_code)]
 pub fn init_logger() {
     dotenvy::dotenv().ok();
-    
+
     tracing_subscriber::registry()
-        .with(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("info")),
-        )
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
         .with(
             fmt::layer()
                 .with_timer(ChronoLocal::rfc_3339())
@@ -83,21 +76,18 @@ pub fn init_logger() {
                 .with_ansi(true)
                 .with_file(true)
                 .with_line_number(true)
-                .compact()
+                .compact(),
         )
         .init();
-    
+
     tracing::info!("Logger initialized");
 }
 
 pub fn init_logger_detailed() {
     dotenvy::dotenv().ok();
-    
+
     tracing_subscriber::registry()
-        .with(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("info")),
-        )
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
         .with(
             fmt::layer()
                 .with_timer(ChronoLocal::rfc_3339())
@@ -114,11 +104,11 @@ pub fn init_logger_detailed() {
                         .with_file(true)
                         .with_line_number(true)
                         .with_target(false)
-                        .compact()
-                )
+                        .compact(),
+                ),
         )
         .init();
-    
+
     let memory = get_memory_usage();
     tracing::info!(
         hostname = %*HOSTNAME,
@@ -130,12 +120,9 @@ pub fn init_logger_detailed() {
 #[cfg(feature = "json")]
 pub fn init_logger_json() {
     dotenvy::dotenv().ok();
-    
+
     tracing_subscriber::registry()
-        .with(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("info")),
-        )
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
         .with(
             fmt::layer()
                 .json()
@@ -144,19 +131,16 @@ pub fn init_logger_json() {
                 .with_span_list(true),
         )
         .init();
-    
+
     tracing::info!("Logger initialized (JSON format)");
 }
 
 #[cfg(test)]
 pub fn init_test_logger() {
     use tracing_subscriber::fmt::TestWriter;
-    
+
     let _ = tracing_subscriber::registry()
-        .with(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new("error")),
-        )
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("error")))
         .with(
             fmt::layer()
                 .with_writer(TestWriter::default())

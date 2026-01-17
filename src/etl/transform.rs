@@ -71,15 +71,15 @@ impl Transformer {
 mod tests {
     use super::*;
     use crate::etl::validator::Validator;
-    
+
     static INIT: std::sync::Once = std::sync::Once::new();
-    
+
     fn init() {
         INIT.call_once(|| {
             let _ = tracing_subscriber::fmt()
                 .with_env_filter(
                     tracing_subscriber::EnvFilter::try_from_default_env()
-                        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("error"))
+                        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("error")),
                 )
                 .with_test_writer()
                 .try_init();
@@ -102,7 +102,9 @@ mod tests {
             .with_timestamp_drift(86400);
         let transformer = Transformer::new().with_validator(validator);
         let timestamp = Utc::now().timestamp();
-        assert!(transformer.transform(50000.0, timestamp, "Test".to_string(), None).is_ok());
+        assert!(transformer
+            .transform(50000.0, timestamp, "Test".to_string(), None)
+            .is_ok());
     }
 
     #[test]
@@ -118,12 +120,9 @@ mod tests {
         use chrono::Utc;
         let transformer = Transformer::new();
         let timestamp = Utc::now().timestamp();
-        let result = transformer.transform(
-            50000.0,
-            timestamp,
-            "CoinGecko".to_string(),
-            None,
-        ).unwrap();
+        let result = transformer
+            .transform(50000.0, timestamp, "CoinGecko".to_string(), None)
+            .unwrap();
 
         assert_eq!(result.asset, "BTC");
         assert_eq!(result.price, 50000.0);
@@ -136,12 +135,7 @@ mod tests {
     fn test_transform_invalid_price() {
         init();
         let transformer = Transformer::new();
-        let result = transformer.transform(
-            -100.0,
-            1234567890,
-            "Test".to_string(),
-            None,
-        );
+        let result = transformer.transform(-100.0, 1234567890, "Test".to_string(), None);
         assert!(result.is_err());
     }
 
@@ -149,12 +143,7 @@ mod tests {
     fn test_transform_invalid_timestamp() {
         init();
         let transformer = Transformer::new();
-        let result = transformer.transform(
-            50000.0,
-            -1,
-            "Test".to_string(),
-            None,
-        );
+        let result = transformer.transform(50000.0, -1, "Test".to_string(), None);
         assert!(result.is_err());
     }
 
@@ -162,12 +151,7 @@ mod tests {
     fn test_transform_invalid_source() {
         init();
         let transformer = Transformer::new();
-        let result = transformer.transform(
-            50000.0,
-            1234567890,
-            "".to_string(),
-            None,
-        );
+        let result = transformer.transform(50000.0, 1234567890, "".to_string(), None);
         assert!(result.is_err());
     }
 
@@ -180,22 +164,16 @@ mod tests {
             .with_validator(validator)
             .with_deduplication_window(60);
         let timestamp = Utc::now().timestamp();
-        
+
         // First transform - no deduplication
-        let result1 = transformer.transform(
-            50000.0,
-            timestamp,
-            "Test".to_string(),
-            None,
-        ).unwrap();
+        let result1 = transformer
+            .transform(50000.0, timestamp, "Test".to_string(), None)
+            .unwrap();
         assert!(!result1.is_deduplicated);
 
-        let result2 = transformer.transform(
-            50100.0,
-            timestamp + 30,
-            "Test".to_string(),
-            Some(timestamp),
-        ).unwrap();
+        let result2 = transformer
+            .transform(50100.0, timestamp + 30, "Test".to_string(), Some(timestamp))
+            .unwrap();
         assert!(result2.is_deduplicated);
     }
 
@@ -208,13 +186,15 @@ mod tests {
             .with_validator(validator)
             .with_deduplication_window(60);
         let timestamp = Utc::now().timestamp();
-        
-        let result = transformer.transform(
-            50000.0,
-            timestamp + 120,
-            "Test".to_string(),
-            Some(timestamp),
-        ).unwrap();
+
+        let result = transformer
+            .transform(
+                50000.0,
+                timestamp + 120,
+                "Test".to_string(),
+                Some(timestamp),
+            )
+            .unwrap();
         assert!(!result.is_deduplicated);
     }
 
@@ -222,7 +202,7 @@ mod tests {
     fn test_normalize_price() {
         init();
         let transformer = Transformer::new();
-        
+
         assert_eq!(transformer.normalize_price(50000.123), 50000.12);
         assert_eq!(transformer.normalize_price(50000.456), 50000.46);
         assert_eq!(transformer.normalize_price(50000.0), 50000.0);
@@ -235,12 +215,9 @@ mod tests {
         use chrono::Utc;
         let transformer = Transformer::new();
         let timestamp = Utc::now().timestamp();
-        let result = transformer.transform(
-            50000.0,
-            timestamp,
-            "TestSource".to_string(),
-            None,
-        ).unwrap();
+        let result = transformer
+            .transform(50000.0, timestamp, "TestSource".to_string(), None)
+            .unwrap();
 
         assert_eq!(result.asset, "BTC");
         assert_eq!(result.price, 50000.0);

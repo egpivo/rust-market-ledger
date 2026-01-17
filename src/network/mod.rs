@@ -9,7 +9,7 @@ pub struct NetworkHandler {
 }
 
 impl NetworkHandler {
-    pub fn new<F>(handler: F) -> Self 
+    pub fn new<F>(handler: F) -> Self
     where
         F: Fn(PBFTMessage) -> bool + Send + Sync + 'static,
     {
@@ -34,14 +34,11 @@ async fn health() -> impl Responder {
     HttpResponse::Ok().json(json!({"status": "healthy"}))
 }
 
-pub async fn start_server(
-    port: u16,
-    handler: Arc<NetworkHandler>,
-) -> std::io::Result<()> {
+pub async fn start_server(port: u16, handler: Arc<NetworkHandler>) -> std::io::Result<()> {
     let handler_data = web::Data::new(handler);
-    
+
     info!(port = port, "Network: Starting HTTP server");
-    
+
     HttpServer::new(move || {
         App::new()
             .app_data(handler_data.clone())
@@ -53,14 +50,17 @@ pub async fn start_server(
     .await
 }
 
-pub async fn send_message(url: &str, message: &PBFTMessage) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn send_message(
+    url: &str,
+    message: &PBFTMessage,
+) -> Result<(), Box<dyn std::error::Error>> {
     let client = reqwest::Client::new();
     let response = client
         .post(&format!("http://{}/message", url))
         .json(message)
         .send()
         .await?;
-    
+
     if response.status().is_success() {
         Ok(())
     } else {
@@ -81,7 +81,7 @@ pub async fn broadcast_message(
                 }
             }
         }
-        
+
         if let Err(e) = send_message(addr, message).await {
             warn!(address = %addr, error = %e, "Network: Failed to send message");
         }

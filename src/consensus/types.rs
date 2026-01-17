@@ -4,7 +4,7 @@ use crate::etl::Block;
 use serde::{Deserialize, Serialize};
 
 /// Consensus result
-/// 
+///
 /// Note: This is used in the ConsensusAlgorithm trait and tests.
 /// Currently, main.rs uses PBFT directly, but this type is reserved for
 /// future use with the trait-based approach.
@@ -20,7 +20,7 @@ pub enum ConsensusResult {
 }
 
 /// Consensus requirements
-/// 
+///
 /// Note: This is used in the ConsensusAlgorithm trait and tests.
 /// Currently, main.rs uses PBFT directly, but this type is reserved for
 /// future use with the trait-based approach.
@@ -36,7 +36,7 @@ pub struct ConsensusRequirements {
 }
 
 /// Consensus message for communication between nodes
-/// 
+///
 /// This is a generic message type for the ConsensusAlgorithm trait.
 /// Individual algorithms may use their own message types (e.g., PBFT uses PBFTMessage).
 #[allow(dead_code)] // Reserved for future use in generic consensus implementations

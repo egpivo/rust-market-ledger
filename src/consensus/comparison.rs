@@ -1,7 +1,7 @@
 //! Consensus algorithm comparison and benchmarking
 
+use crate::consensus::{ConsensusRequirements, ConsensusResult};
 use crate::etl::Block;
-use crate::consensus::{ConsensusResult, ConsensusRequirements};
 use async_trait::async_trait;
 use std::error::Error;
 use std::sync::Arc;
@@ -34,11 +34,11 @@ impl ConsensusStrategy for NoConsensusStrategy {
         committed.insert(block.index);
         Ok(Some(block.clone()))
     }
-    
+
     fn name(&self) -> &str {
         "No-Consensus (Single Node)"
     }
-    
+
     fn requirements(&self) -> ConsensusRequirements {
         ConsensusRequirements {
             requires_majority: false,
@@ -46,7 +46,7 @@ impl ConsensusStrategy for NoConsensusStrategy {
             description: "No consensus required - single node confirmation".to_string(),
         }
     }
-    
+
     fn is_committed(&self, block_index: u64) -> bool {
         let committed = self.committed.read();
         committed.contains(&block_index)
@@ -56,7 +56,8 @@ impl ConsensusStrategy for NoConsensusStrategy {
 pub struct SimpleMajorityStrategy {
     node_id: usize,
     total_nodes: usize,
-    votes: Arc<parking_lot::RwLock<std::collections::HashMap<u64, std::collections::HashSet<usize>>>>,
+    votes:
+        Arc<parking_lot::RwLock<std::collections::HashMap<u64, std::collections::HashSet<usize>>>>,
     committed: Arc<parking_lot::RwLock<std::collections::HashSet<u64>>>,
 }
 
@@ -69,7 +70,7 @@ impl SimpleMajorityStrategy {
             committed: Arc::new(parking_lot::RwLock::new(std::collections::HashSet::new())),
         }
     }
-    
+
     fn majority_size(&self) -> usize {
         (self.total_nodes / 2) + 1
     }
@@ -80,11 +81,13 @@ impl ConsensusStrategy for SimpleMajorityStrategy {
     async fn execute(&self, block: &Block) -> Result<Option<Block>, Box<dyn Error>> {
         // Simulate collecting votes from other nodes
         let mut votes = self.votes.write();
-        let block_votes = votes.entry(block.index).or_insert_with(std::collections::HashSet::new);
-        
+        let block_votes = votes
+            .entry(block.index)
+            .or_insert_with(std::collections::HashSet::new);
+
         // Add our own vote
         block_votes.insert(self.node_id);
-        
+
         // Simulate other nodes voting (for demo purposes)
         // In real implementation, this would come from network messages
         for i in 0..self.total_nodes {
@@ -92,10 +95,10 @@ impl ConsensusStrategy for SimpleMajorityStrategy {
                 block_votes.insert(i);
             }
         }
-        
+
         let vote_count = block_votes.len();
         let majority = self.majority_size();
-        
+
         if vote_count >= majority {
             let mut committed = self.committed.write();
             committed.insert(block.index);
@@ -104,11 +107,11 @@ impl ConsensusStrategy for SimpleMajorityStrategy {
             Ok(None)
         }
     }
-    
+
     fn name(&self) -> &str {
         "Simple Majority (Non-BFT)"
     }
-    
+
     fn requirements(&self) -> ConsensusRequirements {
         ConsensusRequirements {
             requires_majority: true,
@@ -120,7 +123,7 @@ impl ConsensusStrategy for SimpleMajorityStrategy {
             ),
         }
     }
-    
+
     fn is_committed(&self, block_index: u64) -> bool {
         let committed = self.committed.read();
         committed.contains(&block_index)
@@ -139,17 +142,17 @@ impl SimplifiedPoWStrategy {
             committed: Arc::new(parking_lot::RwLock::new(std::collections::HashSet::new())),
         }
     }
-    
+
     fn mine_block(&self, block: &mut Block) {
         let target_prefix = "0".repeat(self.difficulty);
-        
+
         loop {
             block.calculate_hash_with_nonce();
             if block.hash.starts_with(&target_prefix) {
                 break;
             }
             block.nonce += 1;
-            
+
             if block.nonce > 100000 {
                 break;
             }
@@ -161,9 +164,9 @@ impl SimplifiedPoWStrategy {
 impl ConsensusStrategy for SimplifiedPoWStrategy {
     async fn execute(&self, block: &Block) -> Result<Option<Block>, Box<dyn Error>> {
         let mut block_to_mine = block.clone();
-        
+
         self.mine_block(&mut block_to_mine);
-        
+
         let target_prefix = "0".repeat(self.difficulty);
         if block_to_mine.hash.starts_with(&target_prefix) {
             let mut committed = self.committed.write();
@@ -173,11 +176,11 @@ impl ConsensusStrategy for SimplifiedPoWStrategy {
             Ok(None)
         }
     }
-    
+
     fn name(&self) -> &str {
         "Simplified PoW"
     }
-    
+
     fn requirements(&self) -> ConsensusRequirements {
         ConsensusRequirements {
             requires_majority: false,
@@ -188,7 +191,7 @@ impl ConsensusStrategy for SimplifiedPoWStrategy {
             ),
         }
     }
-    
+
     fn is_committed(&self, block_index: u64) -> bool {
         let committed = self.committed.read();
         committed.contains(&block_index)
@@ -214,15 +217,15 @@ impl ConsensusStrategy for ConsensusAlgorithmAdapter {
             ConsensusResult::Rejected(_) => Ok(None),
         }
     }
-    
+
     fn name(&self) -> &str {
         self.algorithm.name()
     }
-    
+
     fn requirements(&self) -> ConsensusRequirements {
         self.algorithm.requirements()
     }
-    
+
     fn is_committed(&self, block_index: u64) -> bool {
         self.algorithm.is_committed(block_index)
     }
@@ -260,18 +263,18 @@ pub async fn compare_consensus_strategies(
     strategies: Vec<Arc<dyn ConsensusStrategy>>,
 ) -> Vec<ConsensusComparisonResult> {
     let mut results = Vec::new();
-    
+
     for strategy in strategies {
         let start = Instant::now();
         let result = strategy.execute(block).await;
         let elapsed = start.elapsed().as_millis() as u64;
-        
+
         let (committed, error_occurred, data_integrity) = match result {
             Ok(Some(_)) => (true, false, true),
             Ok(None) => (false, false, true),
             Err(_) => (false, true, false),
         };
-        
+
         results.push(ConsensusComparisonResult {
             strategy_name: strategy.name().to_string(),
             block_index: block.index,
@@ -282,12 +285,12 @@ pub async fn compare_consensus_strategies(
             data_integrity,
         });
     }
-    
+
     results
 }
 
 /// Run consensus benchmark with multiple blocks
-/// 
+///
 /// This function runs a consensus strategy on multiple blocks to measure:
 /// - Throughput (blocks per second)
 /// - Latency statistics (min, max, avg)
@@ -304,13 +307,13 @@ pub async fn benchmark_consensus_strategy(
     let mut error_count = 0;
     let mut data_integrity_maintained = true;
     let total_start = Instant::now();
-    
+
     for block in blocks {
         let start = Instant::now();
         let result = strategy.execute(block).await;
         let elapsed = start.elapsed().as_millis() as u64;
         latencies.push(elapsed);
-        
+
         match result {
             Ok(Some(_)) => {
                 committed_count += 1;
@@ -326,14 +329,14 @@ pub async fn benchmark_consensus_strategy(
             }
         }
     }
-    
+
     let total_time = total_start.elapsed().as_secs_f64();
     let throughput = if total_time > 0.0 {
         blocks.len() as f64 / total_time
     } else {
         0.0
     };
-    
+
     let min_latency = latencies.iter().min().copied().unwrap_or(0);
     let max_latency = latencies.iter().max().copied().unwrap_or(0);
     let avg_latency = if !latencies.is_empty() {
@@ -341,19 +344,19 @@ pub async fn benchmark_consensus_strategy(
     } else {
         0.0
     };
-    
+
     let error_rate = if !blocks.is_empty() {
         (error_count as f64 / blocks.len() as f64) * 100.0
     } else {
         0.0
     };
-    
+
     let commit_rate = if !blocks.is_empty() {
         (committed_count as f64 / blocks.len() as f64) * 100.0
     } else {
         0.0
     };
-    
+
     ConsensusMetrics {
         strategy_name: strategy.name().to_string(),
         total_blocks: blocks.len(),
@@ -375,12 +378,12 @@ pub async fn compare_consensus_with_metrics(
     strategies: Vec<Arc<dyn ConsensusStrategy>>,
 ) -> Vec<ConsensusMetrics> {
     let mut metrics = Vec::new();
-    
+
     for strategy in strategies {
         let metric = benchmark_consensus_strategy(strategy, blocks).await;
         metrics.push(metric);
     }
-    
+
     metrics
 }
 
@@ -390,12 +393,15 @@ pub fn print_comparison_results(results: &[ConsensusComparisonResult]) {
     println!("  Consensus Algorithm Comparison Results");
     println!("{}", "=".repeat(120));
     println!();
-    println!("{:<30} | {:<12} | {:<10} | {:<10} | {:<15} | {:<20}", 
-        "Strategy", "Committed", "Time (ms)", "Error", "Data Integrity", "Description");
+    println!(
+        "{:<30} | {:<12} | {:<10} | {:<10} | {:<15} | {:<20}",
+        "Strategy", "Committed", "Time (ms)", "Error", "Data Integrity", "Description"
+    );
     println!("{}", "-".repeat(120));
-    
+
     for result in results {
-        println!("{:<30} | {:<12} | {:<10} | {:<10} | {:<15} | {}", 
+        println!(
+            "{:<30} | {:<12} | {:<10} | {:<10} | {:<15} | {}",
             result.strategy_name,
             if result.committed { "Yes" } else { "No" },
             result.execution_time_ms,
@@ -404,7 +410,7 @@ pub fn print_comparison_results(results: &[ConsensusComparisonResult]) {
             result.requirements.description
         );
     }
-    
+
     println!("{}", "=".repeat(120));
     println!();
 }
@@ -414,10 +420,22 @@ pub fn print_metrics_comparison(metrics: &[ConsensusMetrics]) {
     println!("  Consensus Algorithm Detailed Metrics Comparison");
     println!("{}", "=".repeat(140));
     println!();
-    println!("{:<25} | {:<8} | {:<8} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} | {:<8} | {:<8} | {}", 
-        "Strategy", "Total", "Commit", "Failed", "Error", "Min(ms)", "Max(ms)", "Avg(ms)", "Throughput", "Error%", "Integrity");
+    println!(
+        "{:<25} | {:<8} | {:<8} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10} | {:<8} | {:<8} | {}",
+        "Strategy",
+        "Total",
+        "Commit",
+        "Failed",
+        "Error",
+        "Min(ms)",
+        "Max(ms)",
+        "Avg(ms)",
+        "Throughput",
+        "Error%",
+        "Integrity"
+    );
     println!("{}", "-".repeat(140));
-    
+
     for metric in metrics {
         println!("{:<25} | {:<8} | {:<8} | {:<10} | {:<10} | {:<10} | {:<10} | {:<10.2} | {:<8.2} | {:<8.2} | {}", 
             metric.strategy_name,
@@ -433,37 +451,53 @@ pub fn print_metrics_comparison(metrics: &[ConsensusMetrics]) {
             if metric.data_integrity_maintained { "Yes" } else { "No" }
         );
     }
-    
+
     println!("{}", "=".repeat(140));
     println!();
-    
+
     println!("Summary:");
     println!();
-    
+
     if let Some(fastest) = metrics.iter().max_by(|a, b| {
-        a.throughput_blocks_per_sec.partial_cmp(&b.throughput_blocks_per_sec).unwrap()
+        a.throughput_blocks_per_sec
+            .partial_cmp(&b.throughput_blocks_per_sec)
+            .unwrap()
     }) {
-        println!("  Highest Throughput: {} ({:.2} blocks/sec)", 
-            fastest.strategy_name, fastest.throughput_blocks_per_sec);
+        println!(
+            "  Highest Throughput: {} ({:.2} blocks/sec)",
+            fastest.strategy_name, fastest.throughput_blocks_per_sec
+        );
     }
-    
-    if let Some(lowest) = metrics.iter().min_by(|a, b| {
-        a.avg_latency_ms.partial_cmp(&b.avg_latency_ms).unwrap()
-    }) {
-        println!("  Lowest Latency: {} (avg {:.2} ms)", 
-            lowest.strategy_name, lowest.avg_latency_ms);
+
+    if let Some(lowest) = metrics
+        .iter()
+        .min_by(|a, b| a.avg_latency_ms.partial_cmp(&b.avg_latency_ms).unwrap())
+    {
+        println!(
+            "  Lowest Latency: {} (avg {:.2} ms)",
+            lowest.strategy_name, lowest.avg_latency_ms
+        );
     }
-    
-    if let Some(most_stable) = metrics.iter().min_by(|a, b| {
-        a.error_rate.partial_cmp(&b.error_rate).unwrap()
-    }) {
-        println!("  Most Stable: {} (error rate: {:.2}%)", 
-            most_stable.strategy_name, most_stable.error_rate);
+
+    if let Some(most_stable) = metrics
+        .iter()
+        .min_by(|a, b| a.error_rate.partial_cmp(&b.error_rate).unwrap())
+    {
+        println!(
+            "  Most Stable: {} (error rate: {:.2}%)",
+            most_stable.strategy_name, most_stable.error_rate
+        );
     }
-    
-    let integrity_ok = metrics.iter().filter(|m| m.data_integrity_maintained).count();
-    println!("  Data Integrity: {}/{} strategies maintained integrity", 
-        integrity_ok, metrics.len());
-    
+
+    let integrity_ok = metrics
+        .iter()
+        .filter(|m| m.data_integrity_maintained)
+        .count();
+    println!(
+        "  Data Integrity: {}/{} strategies maintained integrity",
+        integrity_ok,
+        metrics.len()
+    );
+
     println!();
 }

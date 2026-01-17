@@ -52,3 +52,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "chrono"] }
 hostname = "0.4"
 sysinfo = "0.30"
+
+[features]
+default = []
+json = ["tracing-subscriber/json"]

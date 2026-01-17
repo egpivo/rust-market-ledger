@@ -11,7 +11,7 @@ async fn main() {
     println!("  Example A: No-Consensus (Single Node Direct Commit)");
     println!("{}", "=".repeat(80));
     println!();
-    
+
     let block = Block {
         index: 1,
         timestamp: chrono::Utc::now().timestamp(),
@@ -25,21 +25,26 @@ async fn main() {
         hash: String::new(),
         nonce: 0,
     };
-    
-    println!("Block created: index={}, data={} @ ${}", 
-        block.index, block.data[0].asset, block.data[0].price);
+
+    println!(
+        "Block created: index={}, data={} @ ${}",
+        block.index, block.data[0].asset, block.data[0].price
+    );
     println!();
-    
+
     let strategy = Arc::new(NoConsensusStrategy::new());
     println!("Strategy: {}", strategy.name());
     println!();
-    
+
     let start = Instant::now();
     match strategy.execute(&block).await {
         Ok(Some(committed_block)) => {
             let elapsed = start.elapsed();
-            println!("Block committed: latency={:.2}ms, index={}", 
-                elapsed.as_secs_f64() * 1000.0, committed_block.index);
+            println!(
+                "Block committed: latency={:.2}ms, index={}",
+                elapsed.as_secs_f64() * 1000.0,
+                committed_block.index
+            );
             println!();
             println!("Advantages:");
             println!("  - Zero latency, immediate commit");
@@ -59,7 +64,7 @@ async fn main() {
         Ok(None) => println!("Block not committed"),
         Err(e) => println!("Error: {}", e),
     }
-    
+
     println!("{}", "=".repeat(80));
     println!();
 }

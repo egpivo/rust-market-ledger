@@ -1,5 +1,5 @@
 //! Consensus algorithm abstraction and implementations
-//! 
+//!
 //! This module provides a trait-based consensus system that allows
 //! plugging in different consensus algorithms, including those that
 //! don't require majority voting.
@@ -17,7 +17,7 @@
 
 // Re-export public API
 pub use traits::ConsensusAlgorithm;
-pub use types::{ConsensusMessage, ConsensusResult, ConsensusRequirements};
+pub use types::{ConsensusMessage, ConsensusRequirements, ConsensusResult};
 
 // Algorithm implementations
 pub mod algorithms;

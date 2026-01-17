@@ -1,9 +1,9 @@
 use crate::etl::validator::Validator;
 use chrono::prelude::*;
 use reqwest::Client;
+use serde::Deserialize;
 use std::error::Error;
 use std::time::Duration;
-use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 struct CoinGeckoResponse {
@@ -52,11 +52,11 @@ impl Extractor {
     }
 
     pub async fn extract_from_api(&self) -> Result<ExtractResult, Box<dyn Error>> {
-        let url = std::env::var("COINGECKO_API_URL")
-            .unwrap_or_else(|_| {
-                "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd".to_string()
-            });
-        
+        let url = std::env::var("COINGECKO_API_URL").unwrap_or_else(|_| {
+            "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+                .to_string()
+        });
+
         let mut last_error = None;
 
         for attempt in 1..=self.max_retries {
@@ -95,7 +95,8 @@ impl Extractor {
                         Err(e) => {
                             last_error = Some(format!("JSON decode error: {}", e));
                             if attempt < self.max_retries {
-                                tokio::time::sleep(Duration::from_millis(500 * attempt as u64)).await;
+                                tokio::time::sleep(Duration::from_millis(500 * attempt as u64))
+                                    .await;
                                 continue;
                             }
                         }
@@ -139,15 +140,15 @@ impl Extractor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     static INIT: std::sync::Once = std::sync::Once::new();
-    
+
     fn init() {
         INIT.call_once(|| {
             let _ = tracing_subscriber::fmt()
                 .with_env_filter(
                     tracing_subscriber::EnvFilter::try_from_default_env()
-                        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("error"))
+                        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("error")),
                 )
                 .with_test_writer()
                 .try_init();
@@ -184,7 +185,7 @@ mod tests {
         init();
         let extractor = Extractor::new().unwrap();
         let result = extractor.extract_offline().await;
-        
+
         assert!(result.is_ok());
         let data = result.unwrap();
         assert_eq!(data.source, "MockData");
@@ -197,10 +198,8 @@ mod tests {
     async fn test_extract_offline_validation() {
         init();
         let validator = Validator::new().with_price_range(0.0, 100.0);
-        let extractor = Extractor::new()
-            .unwrap()
-            .with_validator(validator);
-        
+        let extractor = Extractor::new().unwrap().with_validator(validator);
+
         // Offline extraction generates prices around 50000, which exceeds max of 100
         let result = extractor.extract_offline().await;
         assert!(result.is_err());
@@ -211,7 +210,7 @@ mod tests {
         init();
         let extractor = Extractor::new().unwrap();
         let result = extractor.extract_offline().await.unwrap();
-        
+
         assert!(!result.source.is_empty());
         assert!(result.price > 0.0);
         assert!(result.timestamp > 0);

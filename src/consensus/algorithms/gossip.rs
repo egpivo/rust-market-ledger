@@ -1,12 +1,14 @@
 //! Gossip-based consensus
 
-use crate::consensus::{ConsensusAlgorithm, ConsensusMessage, ConsensusResult, ConsensusRequirements};
+use crate::consensus::{
+    ConsensusAlgorithm, ConsensusMessage, ConsensusRequirements, ConsensusResult,
+};
 use crate::etl::Block;
 use async_trait::async_trait;
+use parking_lot::RwLock;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Debug)]
@@ -35,7 +37,7 @@ impl GossipConsensus {
             fanout,
         }
     }
-    
+
     fn get_timestamp() -> u64 {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -49,20 +51,18 @@ impl ConsensusAlgorithm for GossipConsensus {
     async fn propose(&self, block: &Block) -> Result<ConsensusResult, Box<dyn Error>> {
         {
             let mut state = self.state.write();
-            let gossip_state = state.entry(block.index).or_insert_with(|| {
-                GossipState {
-                    block_index: block.index,
-                    block_hash: block.hash.clone(),
-                    received_from: HashSet::new(),
-                    timestamp: Self::get_timestamp(),
-                }
+            let gossip_state = state.entry(block.index).or_insert_with(|| GossipState {
+                block_index: block.index,
+                block_hash: block.hash.clone(),
+                received_from: HashSet::new(),
+                timestamp: Self::get_timestamp(),
             });
             gossip_state.received_from.insert(self.node_id);
         }
-        
+
         for _ in 0..self.gossip_rounds {
             tokio::time::sleep(Duration::from_millis(100)).await;
-            
+
             {
                 let mut state = self.state.write();
                 if let Some(gossip_state) = state.get_mut(&block.index) {
@@ -72,7 +72,7 @@ impl ConsensusAlgorithm for GossipConsensus {
                 }
             }
         }
-        
+
         let state = self.state.read();
         if let Some(gossip_state) = state.get(&block.index) {
             if gossip_state.received_from.len() >= self.gossip_rounds {
@@ -80,30 +80,33 @@ impl ConsensusAlgorithm for GossipConsensus {
                 return Ok(ConsensusResult::Committed(block.clone()));
             }
         }
-        
+
         Ok(ConsensusResult::Pending)
     }
-    
-    async fn handle_message(&self, message: ConsensusMessage) -> Result<ConsensusResult, Box<dyn Error>> {
+
+    async fn handle_message(
+        &self,
+        message: ConsensusMessage,
+    ) -> Result<ConsensusResult, Box<dyn Error>> {
         {
             let mut state = self.state.write();
-            let gossip_state = state.entry(message.block_index).or_insert_with(|| {
-                GossipState {
+            let gossip_state = state
+                .entry(message.block_index)
+                .or_insert_with(|| GossipState {
                     block_index: message.block_index,
                     block_hash: message.block_hash.clone(),
                     received_from: HashSet::new(),
                     timestamp: Self::get_timestamp(),
-                }
-            });
+                });
             gossip_state.received_from.insert(message.node_id);
         }
         Ok(ConsensusResult::Pending)
     }
-    
+
     fn name(&self) -> &str {
         "Gossip Protocol"
     }
-    
+
     fn requirements(&self) -> ConsensusRequirements {
         ConsensusRequirements {
             requires_majority: false,
@@ -114,7 +117,7 @@ impl ConsensusAlgorithm for GossipConsensus {
             ),
         }
     }
-    
+
     fn is_committed(&self, block_index: u64) -> bool {
         let committed = self.committed.read();
         committed.contains(&block_index)

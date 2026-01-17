@@ -1,12 +1,14 @@
 //! Quorum-less consensus with weighted voting
 
-use crate::consensus::{ConsensusAlgorithm, ConsensusMessage, ConsensusResult, ConsensusRequirements};
+use crate::consensus::{
+    ConsensusAlgorithm, ConsensusMessage, ConsensusRequirements, ConsensusResult,
+};
 use crate::etl::Block;
 use async_trait::async_trait;
+use parking_lot::RwLock;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::sync::Arc;
-use parking_lot::RwLock;
 
 #[derive(Clone, Debug)]
 #[allow(dead_code)]
@@ -31,7 +33,7 @@ impl QuorumlessConsensus {
         for i in 0..10 {
             weights.insert(i, 1.0);
         }
-        
+
         Self {
             node_id,
             node_weights: Arc::new(RwLock::new(weights)),
@@ -40,7 +42,7 @@ impl QuorumlessConsensus {
             threshold_weight,
         }
     }
-    
+
     #[allow(dead_code)]
     pub fn set_node_weight(&self, node_id: usize, weight: f64) {
         self.node_weights.write().insert(node_id, weight);
@@ -52,9 +54,9 @@ impl ConsensusAlgorithm for QuorumlessConsensus {
     async fn propose(&self, block: &Block) -> Result<ConsensusResult, Box<dyn Error>> {
         let mut votes = self.votes.write();
         let block_votes = votes.entry(block.index).or_insert_with(HashMap::new);
-        
+
         block_votes.insert(self.node_id, true);
-        
+
         let weights = self.node_weights.read();
         let mut total_weight = 0.0;
         for (node_id, voted) in block_votes.iter() {
@@ -62,7 +64,7 @@ impl ConsensusAlgorithm for QuorumlessConsensus {
                 total_weight += weights.get(node_id).copied().unwrap_or(1.0);
             }
         }
-        
+
         if total_weight >= self.threshold_weight {
             self.committed.write().insert(block.index);
             Ok(ConsensusResult::Committed(block.clone()))
@@ -70,20 +72,25 @@ impl ConsensusAlgorithm for QuorumlessConsensus {
             Ok(ConsensusResult::Pending)
         }
     }
-    
-    async fn handle_message(&self, message: ConsensusMessage) -> Result<ConsensusResult, Box<dyn Error>> {
+
+    async fn handle_message(
+        &self,
+        message: ConsensusMessage,
+    ) -> Result<ConsensusResult, Box<dyn Error>> {
         {
             let mut votes = self.votes.write();
-            let block_votes = votes.entry(message.block_index).or_insert_with(HashMap::new);
+            let block_votes = votes
+                .entry(message.block_index)
+                .or_insert_with(HashMap::new);
             block_votes.insert(message.node_id, true);
         }
         Ok(ConsensusResult::Pending)
     }
-    
+
     fn name(&self) -> &str {
         "Quorum-less (Weighted)"
     }
-    
+
     fn requirements(&self) -> ConsensusRequirements {
         ConsensusRequirements {
             requires_majority: false,
@@ -94,7 +101,7 @@ impl ConsensusAlgorithm for QuorumlessConsensus {
             ),
         }
     }
-    
+
     fn is_committed(&self, block_index: u64) -> bool {
         let committed = self.committed.read();
         committed.contains(&block_index)
