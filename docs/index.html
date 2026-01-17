@@ -91,73 +91,56 @@
             margin-bottom: 16px;
         }
 
+        h3 {
+            font-size: 1.2rem;
+            margin-bottom: 12px;
+        }
+
         .subtext {
             color: var(--muted);
             margin-bottom: 20px;
         }
 
-        .panel-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 16px;
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0;
         }
 
-        .card {
-            background: var(--card);
+        .tab {
+            padding: 12px 20px;
+            border-radius: 10px 10px 0 0;
             border: 1px solid var(--border);
-            padding: 18px;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(15, 23, 42, 0.05);
-        }
-
-        .strategy-select {
-            width: 100%;
-            padding: 12px 14px;
-            font-size: 1rem;
-            border: 1px solid var(--border);
-            border-radius: 10px;
+            border-bottom: none;
             background: #f8fafc;
-        }
-
-        .strategy-dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-top: 18px;
-        }
-
-        .dashboard-card {
-            background: #f9fafb;
-            padding: 14px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-        }
-
-        .dashboard-card h4 {
             color: var(--muted);
-            font-size: 0.85rem;
-            margin-bottom: 6px;
+            cursor: pointer;
+            font-weight: 500;
         }
 
-        .dashboard-card .value {
-            font-size: 1.3rem;
-            font-weight: 600;
-            font-family: "JetBrains Mono", "Courier New", monospace;
+        .tab.active {
+            background: var(--card);
+            color: var(--accent);
+            border-color: var(--border);
+            border-bottom: 2px solid var(--card);
+            margin-bottom: -2px;
         }
 
-        .data-note {
-            background: var(--warning-bg);
-            border: 1px solid var(--warning-border);
-            padding: 14px;
-            border-radius: 10px;
-            color: #7c2d12;
-            margin-top: 16px;
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
 
         .params-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 14px;
+            margin: 20px 0;
         }
 
         .param-item {
@@ -177,33 +160,13 @@
             font-family: "JetBrains Mono", "Courier New", monospace;
         }
 
-        .tabs {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-        }
-
-        .tab {
-            padding: 10px 18px;
+        .data-note {
+            background: var(--warning-bg);
+            border: 1px solid var(--warning-border);
+            padding: 14px;
             border-radius: 10px;
-            border: 1px solid var(--border);
-            background: #f8fafc;
-            color: var(--muted);
-            cursor: pointer;
-        }
-
-        .tab.active {
-            background: var(--accent);
-            color: #fff;
-            border-color: var(--accent);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
+            color: #7c2d12;
+            margin: 20px 0;
         }
 
         table {
@@ -211,6 +174,7 @@
             border-collapse: collapse;
             border-radius: 12px;
             overflow: hidden;
+            margin: 20px 0;
         }
 
         th, td {
@@ -251,6 +215,10 @@
             border-radius: 12px;
         }
 
+        .trilemma-card h4 {
+            margin-bottom: 12px;
+        }
+
         .score-bar {
             height: 10px;
             background: #e5e7eb;
@@ -279,31 +247,17 @@
             text-decoration: underline;
         }
 
-        .pill-group {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
+        ol, ul {
+            margin-left: 20px;
+            line-height: 2;
         }
 
-        .pill {
-            padding: 6px 12px;
-            border-radius: 999px;
-            background: var(--accent-weak);
-            color: #1e3a8a;
-            font-size: 0.85rem;
-        }
-
-        .limitations-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 12px;
-        }
-
-        .limitations-item {
+        .card {
+            background: var(--card);
             border: 1px solid var(--border);
-            background: #f8fafc;
-            padding: 14px;
-            border-radius: 10px;
+            padding: 18px;
+            border-radius: 12px;
+            margin: 16px 0;
         }
 
         @media (max-width: 720px) {
@@ -330,123 +284,96 @@
         </section>
 
         <section class="section">
-            <h2>Data Generation & Metric Definitions</h2>
-            
-            <div class="card" style="margin-bottom: 20px;">
-                <h3 style="margin-bottom: 12px; font-size: 1.2rem;">How data is generated</h3>
-                <ol style="margin-left: 20px; line-height: 2;">
-                    <li>Generate 100 test blocks with mock market data</li>
-                    <li>Run each strategy on the same 100 blocks (5 rounds per strategy)</li>
-                    <li>For each block: measure execution time from <code>strategy.execute(block)</code> start to end</li>
-                    <li>Calculate metrics: average latency, throughput, commit/error rates across all blocks</li>
-                    <li>Report mean ± standard deviation across 5 rounds</li>
-                </ol>
-            </div>
-
-            <div class="card" style="margin-bottom: 20px;">
-                <h3 style="margin-bottom: 12px; font-size: 1.2rem;">Metric definitions</h3>
-                <ul style="margin-left: 20px; line-height: 2;">
-                    <li><strong>Latency (ms):</strong> Time from block proposal to consensus result (average across all blocks)</li>
-                    <li><strong>Throughput (blocks/sec):</strong> Total blocks processed / total execution time</li>
-                    <li><strong>Commit Rate (%):</strong> (Committed blocks / Total blocks) × 100</li>
-                    <li><strong>Error Rate (%):</strong> (Blocks with errors / Total blocks) × 100</li>
-                    <li><strong>Trilemma Scores:</strong> Qualitative assessment (1-5 scale) based on algorithm characteristics</li>
-                </ul>
-            </div>
-
-            <div class="card">
-                <h3 style="margin-bottom: 12px; font-size: 1.2rem;">Strategy Query Panel</h3>
-                <p class="subtext">Select a strategy to view its metrics.</p>
-                <select id="strategySelect" class="strategy-select">
-                    <option value="">Select a consensus strategy...</option>
-                    <option value="pbft">PBFT</option>
-                    <option value="gossip">Gossip</option>
-                    <option value="eventual">Eventual</option>
-                    <option value="quorumless">Quorum-less</option>
-                    <option value="flexiblepaxos">Flexible Paxos</option>
-                </select>
-
-                <div id="strategyDashboard" class="strategy-dashboard" style="display: none;">
-                    <div class="dashboard-card">
-                        <h4>Latency</h4>
-                        <div class="value" id="latencyValue">-</div>
-                    </div>
-                    <div class="dashboard-card">
-                        <h4>Throughput</h4>
-                        <div class="value" id="throughputValue">-</div>
-                    </div>
-                    <div class="dashboard-card">
-                        <h4>Commit Rate</h4>
-                        <div class="value" id="commitRateValue">-</div>
-                    </div>
-                    <div class="dashboard-card">
-                        <h4>Error Rate</h4>
-                        <div class="value" id="errorRateValue">-</div>
-                    </div>
-                    <div class="dashboard-card">
-                        <h4>Decentralization</h4>
-                        <div class="value" id="decentralizationValue">-</div>
-                    </div>
-                    <div class="dashboard-card">
-                        <h4>Security</h4>
-                        <div class="value" id="securityValue">-</div>
-                    </div>
-                    <div class="dashboard-card">
-                        <h4>Scalability</h4>
-                        <div class="value" id="scalabilityValue">-</div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="section">
-            <h2>Scenario Parameters</h2>
-            <p class="subtext">Configuration used for the current simulation run.</p>
-            <div class="params-grid">
-                <div class="param-item">
-                    <strong>Blocks per round</strong>
-                    <span>100</span>
-                </div>
-                <div class="param-item">
-                    <strong>Rounds per strategy</strong>
-                    <span>5</span>
-                </div>
-                <div class="param-item">
-                    <strong>Total nodes</strong>
-                    <span>4</span>
-                </div>
-                <div class="param-item">
-                    <strong>PBFT Quorum</strong>
-                    <span>3 (2f+1)</span>
-                </div>
-                <div class="param-item">
-                    <strong>Gossip Fanout</strong>
-                    <span>2</span>
-                </div>
-                <div class="param-item">
-                    <strong>Eventual Delay</strong>
-                    <span>500ms</span>
-                </div>
-                <div class="param-item">
-                    <strong>Quorum-less Threshold</strong>
-                    <span>5.0</span>
-                </div>
-                <div class="param-item">
-                    <strong>Flexible Paxos Q1/Q2</strong>
-                    <span>2/3</span>
-                </div>
-            </div>
-        </section>
-
-        <section class="section">
-            <h2>Results & Limitations</h2>
-            <p class="subtext">Review the simulated metrics or switch to the limitations view to understand what the demo does not capture.</p>
             <div class="tabs">
-                <button class="tab active" onclick="switchTab('results')">Results</button>
-                <button class="tab" onclick="switchTab('limitations')">Limitations</button>
+                <button class="tab active" onclick="switchTab('setup')">Setup & Parameters</button>
+                <button class="tab" onclick="switchTab('definitions')">Metrics & Algorithms</button>
+                <button class="tab" onclick="switchTab('results')">Results</button>
             </div>
 
-            <div id="resultsTab" class="tab-content active">
+            <div id="setupTab" class="tab-content active">
+                <h2>Goal & Data Setup</h2>
+                <p class="subtext">Compare consensus algorithms using the same test blocks to understand trade-offs.</p>
+                
+                <div class="card">
+                    <h3>Data Simulation Process</h3>
+                    <ol>
+                        <li>Generate 100 test blocks with mock market data (BTC price variations)</li>
+                        <li>Each strategy runs on the same 100 blocks for fair comparison</li>
+                        <li>Repeat 5 rounds per strategy to calculate mean ± std dev</li>
+                        <li>For each block: measure execution time from <code>strategy.execute(block)</code> start to end</li>
+                        <li>Collect metrics: latency, throughput, commit/error rates</li>
+                    </ol>
+                </div>
+
+                <div class="card">
+                    <h3>Scenario Parameters</h3>
+                    <div class="params-grid">
+                        <div class="param-item">
+                            <strong>Blocks per round</strong>
+                            <span>100</span>
+                        </div>
+                        <div class="param-item">
+                            <strong>Rounds per strategy</strong>
+                            <span>5</span>
+                        </div>
+                        <div class="param-item">
+                            <strong>Total nodes</strong>
+                            <span>4</span>
+                        </div>
+                        <div class="param-item">
+                            <strong>PBFT Quorum</strong>
+                            <span>3 (2f+1)</span>
+                        </div>
+                        <div class="param-item">
+                            <strong>Gossip Fanout</strong>
+                            <span>2</span>
+                        </div>
+                        <div class="param-item">
+                            <strong>Eventual Delay</strong>
+                            <span>500ms</span>
+                        </div>
+                        <div class="param-item">
+                            <strong>Quorum-less Threshold</strong>
+                            <span>5.0</span>
+                        </div>
+                        <div class="param-item">
+                            <strong>Flexible Paxos Q1/Q2</strong>
+                            <span>2/3</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="data-note">
+                    <strong>Note:</strong> All strategies use the same fixed parameters and test blocks. Results are simulated on a single machine and should not be interpreted as production benchmarks.
+                </div>
+            </div>
+
+            <div id="definitionsTab" class="tab-content">
+                <h2>Metric Definitions</h2>
+                <div class="card">
+                    <ul>
+                        <li><strong>Latency (ms):</strong> Time from block proposal to consensus result (average across all blocks)</li>
+                        <li><strong>Throughput (blocks/sec):</strong> Total blocks processed / total execution time</li>
+                        <li><strong>Commit Rate (%):</strong> (Committed blocks / Total blocks) × 100</li>
+                        <li><strong>Error Rate (%):</strong> (Blocks with errors / Total blocks) × 100</li>
+                        <li><strong>Trilemma Scores:</strong> Qualitative assessment (1-5 scale) based on algorithm characteristics</li>
+                    </ul>
+                </div>
+
+                <h2 style="margin-top: 32px;">Consensus Algorithms</h2>
+                <div class="card">
+                    <ul>
+                        <li><strong>PBFT</strong> - Practical Byzantine Fault Tolerance (BFT, requires majority voting: 2f+1 out of 3f+1)</li>
+                        <li><strong>Gossip</strong> - Epidemic/gossip protocol (no majority voting, uses fanout propagation)</li>
+                        <li><strong>Eventual</strong> - Time-based commitment (eventual consistency, fixed delay)</li>
+                        <li><strong>Quorum-less</strong> - Weighted voting based on reputation (threshold-based, no fixed quorum)</li>
+                        <li><strong>Flexible Paxos</strong> - Flexible quorum Paxos (Q1 for phase-1, Q2 for phase-2, Q1+Q2 > nodes ensures intersection)</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="resultsTab" class="tab-content">
+                <h2>Performance Metrics</h2>
                 <table>
                     <thead>
                         <tr>
@@ -496,96 +423,59 @@
                     </tbody>
                 </table>
 
-                <div class="section" style="margin-top: 20px;">
-                    <h3>Trilemma Scores (Qualitative)</h3>
-                    <p class="subtext">Scored from 1 (low) to 5 (high) based on algorithm characteristics.</p>
-                    <div class="trilemma-scores">
-                        <div class="trilemma-card">
-                            <h4>PBFT</h4>
-                            <p><strong>Decentralization:</strong> 4.0/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
-                            <p><strong>Security:</strong> 5.0/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 100%"></div></div>
-                            <p><strong>Scalability:</strong> 2.0/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 40%"></div></div>
-                        </div>
+                <h2 style="margin-top: 32px;">Trilemma Scores (Qualitative)</h2>
+                <p class="subtext">Scored from 1 (low) to 5 (high) based on algorithm characteristics.</p>
+                <div class="trilemma-scores">
+                    <div class="trilemma-card">
+                        <h4>PBFT</h4>
+                        <p><strong>Decentralization:</strong> 4.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
+                        <p><strong>Security:</strong> 5.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 100%"></div></div>
+                        <p><strong>Scalability:</strong> 2.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 40%"></div></div>
+                    </div>
 
-                        <div class="trilemma-card">
-                            <h4>Gossip</h4>
-                            <p><strong>Decentralization:</strong> 5.0/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 100%"></div></div>
-                            <p><strong>Security:</strong> 3.0/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 60%"></div></div>
-                            <p><strong>Scalability:</strong> 5.0/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 100%"></div></div>
-                        </div>
+                    <div class="trilemma-card">
+                        <h4>Gossip</h4>
+                        <p><strong>Decentralization:</strong> 5.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 100%"></div></div>
+                        <p><strong>Security:</strong> 3.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 60%"></div></div>
+                        <p><strong>Scalability:</strong> 5.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 100%"></div></div>
+                    </div>
 
-                        <div class="trilemma-card">
-                            <h4>Eventual</h4>
-                            <p><strong>Decentralization:</strong> 4.0/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
-                            <p><strong>Security:</strong> 2.0/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 40%"></div></div>
-                            <p><strong>Scalability:</strong> 4.0/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
-                        </div>
+                    <div class="trilemma-card">
+                        <h4>Eventual</h4>
+                        <p><strong>Decentralization:</strong> 4.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
+                        <p><strong>Security:</strong> 2.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 40%"></div></div>
+                        <p><strong>Scalability:</strong> 4.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
+                    </div>
 
-                        <div class="trilemma-card">
-                            <h4>Quorum-less</h4>
-                            <p><strong>Decentralization:</strong> 4.0/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
-                            <p><strong>Security:</strong> 3.5/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 70%"></div></div>
-                            <p><strong>Scalability:</strong> 4.5/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 90%"></div></div>
-                        </div>
+                    <div class="trilemma-card">
+                        <h4>Quorum-less</h4>
+                        <p><strong>Decentralization:</strong> 4.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
+                        <p><strong>Security:</strong> 3.5/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 70%"></div></div>
+                        <p><strong>Scalability:</strong> 4.5/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 90%"></div></div>
+                    </div>
 
-                        <div class="trilemma-card">
-                            <h4>Flexible Paxos</h4>
-                            <p><strong>Decentralization:</strong> 4.0/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
-                            <p><strong>Security:</strong> 4.5/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 90%"></div></div>
-                            <p><strong>Scalability:</strong> 3.0/5.0</p>
-                            <div class="score-bar"><div class="score-fill" style="width: 60%"></div></div>
-                        </div>
+                    <div class="trilemma-card">
+                        <h4>Flexible Paxos</h4>
+                        <p><strong>Decentralization:</strong> 4.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
+                        <p><strong>Security:</strong> 4.5/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 90%"></div></div>
+                        <p><strong>Scalability:</strong> 3.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 60%"></div></div>
                     </div>
                 </div>
-            </div>
-
-            <div id="limitationsTab" class="tab-content">
-                <div class="limitations-list">
-                    <div class="limitations-item">
-                        <strong>Environment</strong>
-                        <p class="subtext">Single machine simulation with no network turbulence.</p>
-                    </div>
-                    <div class="limitations-item">
-                        <strong>Market Data</strong>
-                        <p class="subtext">Mock order flow used for repeatable demo scenarios.</p>
-                    </div>
-                    <div class="limitations-item">
-                        <strong>Faults</strong>
-                        <p class="subtext">No Byzantine behavior or adversarial load injected.</p>
-                    </div>
-                    <div class="limitations-item">
-                        <strong>Implementation</strong>
-                        <p class="subtext">Simplified consensus loops focused on UX clarity.</p>
-                    </div>
-                </div>
-                <div class="data-note" style="margin-top: 16px;">
-                    <strong>Recommendation:</strong> Use this page to compare behavior patterns, then validate with production telemetry or a staging environment before making capacity decisions.
-                </div>
-            </div>
-        </section>
-
-        <section class="section">
-            <h2>What you can do next</h2>
-            <p class="subtext">Suggested follow-ups for turning this demo into an operational dashboard.</p>
-            <div class="pill-group">
-                <span class="pill">Connect live metrics</span>
-                <span class="pill">Add latency percentiles</span>
-                <span class="pill">Export CSV for review</span>
-                <span class="pill">Create alerts for error spikes</span>
             </div>
         </section>
 
@@ -598,73 +488,6 @@
     </div>
 
     <script>
-        const strategyData = {
-            pbft: {
-                latency: "1500.0 ± 50.0 ms",
-                throughput: "66.67 blocks/sec",
-                commitRate: "100.0%",
-                errorRate: "0.0%",
-                decentralization: "4.0/5.0",
-                security: "5.0/5.0",
-                scalability: "2.0/5.0"
-            },
-            gossip: {
-                latency: "300.0 ± 10.0 ms",
-                throughput: "333.33 blocks/sec",
-                commitRate: "100.0%",
-                errorRate: "0.0%",
-                decentralization: "5.0/5.0",
-                security: "3.0/5.0",
-                scalability: "5.0/5.0"
-            },
-            eventual: {
-                latency: "500.0 ± 5.0 ms",
-                throughput: "200.0 blocks/sec",
-                commitRate: "100.0%",
-                errorRate: "0.0%",
-                decentralization: "4.0/5.0",
-                security: "2.0/5.0",
-                scalability: "4.0/5.0"
-            },
-            quorumless: {
-                latency: "50.0 ± 2.0 ms",
-                throughput: "2000.0 blocks/sec",
-                commitRate: "100.0%",
-                errorRate: "0.0%",
-                decentralization: "4.0/5.0",
-                security: "3.5/5.0",
-                scalability: "4.5/5.0"
-            },
-            flexiblepaxos: {
-                latency: "800.0 ± 30.0 ms",
-                throughput: "125.0 blocks/sec",
-                commitRate: "100.0%",
-                errorRate: "0.0%",
-                decentralization: "4.0/5.0",
-                security: "4.5/5.0",
-                scalability: "3.0/5.0"
-            }
-        };
-
-        document.getElementById("strategySelect").addEventListener("change", function(e) {
-            const selected = e.target.value;
-            const dashboard = document.getElementById("strategyDashboard");
-
-            if (selected && strategyData[selected]) {
-                const data = strategyData[selected];
-                document.getElementById("latencyValue").textContent = data.latency;
-                document.getElementById("throughputValue").textContent = data.throughput;
-                document.getElementById("commitRateValue").textContent = data.commitRate;
-                document.getElementById("errorRateValue").textContent = data.errorRate;
-                document.getElementById("decentralizationValue").textContent = data.decentralization;
-                document.getElementById("securityValue").textContent = data.security;
-                document.getElementById("scalabilityValue").textContent = data.scalability;
-                dashboard.style.display = "grid";
-            } else {
-                dashboard.style.display = "none";
-            }
-        });
-
         function switchTab(tabName) {
             const tabs = document.querySelectorAll(".tab");
             const contents = document.querySelectorAll(".tab-content");
@@ -672,12 +495,15 @@
             tabs.forEach(tab => tab.classList.remove("active"));
             contents.forEach(content => content.classList.remove("active"));
 
-            if (tabName === "results") {
+            if (tabName === "setup") {
                 document.querySelector(".tab:first-child").classList.add("active");
-                document.getElementById("resultsTab").classList.add("active");
+                document.getElementById("setupTab").classList.add("active");
+            } else if (tabName === "definitions") {
+                document.querySelector(".tab:nth-child(2)").classList.add("active");
+                document.getElementById("definitionsTab").classList.add("active");
             } else {
                 document.querySelector(".tab:last-child").classList.add("active");
-                document.getElementById("limitationsTab").classList.add("active");
+                document.getElementById("resultsTab").classList.add("active");
             }
         }
     </script>
