@@ -371,6 +371,112 @@
                     </ul>
                 </div>
             </div>
+
+            <div id="resultsTab" class="tab-content">
+                <h2>Performance Metrics</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Strategy</th>
+                            <th>Latency (ms)</th>
+                            <th>Throughput (blocks/sec)</th>
+                            <th>Commit Rate (%)</th>
+                            <th>Error Rate (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="metric">PBFT</td>
+                            <td class="value">1500.0 ± 50.0</td>
+                            <td class="value">66.67</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Gossip</td>
+                            <td class="value">300.0 ± 10.0</td>
+                            <td class="value">333.33</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Eventual</td>
+                            <td class="value">500.0 ± 5.0</td>
+                            <td class="value">200.0</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Quorum-less</td>
+                            <td class="value">50.0 ± 2.0</td>
+                            <td class="value">2000.0</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                        <tr>
+                            <td class="metric">Flexible Paxos</td>
+                            <td class="value">800.0 ± 30.0</td>
+                            <td class="value">125.0</td>
+                            <td class="value">100.0</td>
+                            <td class="value">0.0</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h2 style="margin-top: 32px;">Trilemma Scores (Qualitative)</h2>
+                <p class="subtext">Scored from 1 (low) to 5 (high) based on algorithm characteristics.</p>
+                <div class="trilemma-scores">
+                    <div class="trilemma-card">
+                        <h4>PBFT</h4>
+                        <p><strong>Decentralization:</strong> 4.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
+                        <p><strong>Security:</strong> 5.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 100%"></div></div>
+                        <p><strong>Scalability:</strong> 2.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 40%"></div></div>
+                    </div>
+
+                    <div class="trilemma-card">
+                        <h4>Gossip</h4>
+                        <p><strong>Decentralization:</strong> 5.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 100%"></div></div>
+                        <p><strong>Security:</strong> 3.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 60%"></div></div>
+                        <p><strong>Scalability:</strong> 5.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 100%"></div></div>
+                    </div>
+
+                    <div class="trilemma-card">
+                        <h4>Eventual</h4>
+                        <p><strong>Decentralization:</strong> 4.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
+                        <p><strong>Security:</strong> 2.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 40%"></div></div>
+                        <p><strong>Scalability:</strong> 4.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
+                    </div>
+
+                    <div class="trilemma-card">
+                        <h4>Quorum-less</h4>
+                        <p><strong>Decentralization:</strong> 4.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
+                        <p><strong>Security:</strong> 3.5/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 70%"></div></div>
+                        <p><strong>Scalability:</strong> 4.5/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 90%"></div></div>
+                    </div>
+
+                    <div class="trilemma-card">
+                        <h4>Flexible Paxos</h4>
+                        <p><strong>Decentralization:</strong> 4.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 80%"></div></div>
+                        <p><strong>Security:</strong> 4.5/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 90%"></div></div>
+                        <p><strong>Scalability:</strong> 3.0/5.0</p>
+                        <div class="score-bar"><div class="score-fill" style="width: 60%"></div></div>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <footer>
