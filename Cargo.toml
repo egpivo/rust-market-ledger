@@ -7,6 +7,34 @@ edition = "2021"
 name = "rust_market_ledger"
 path = "src/lib.rs"
 
+[[example]]
+name = "trilemma_comparison"
+path = "examples/trilemma_comparison.rs"
+
+[[example]]
+name = "metrics_comparison_example"
+path = "examples/metrics_comparison_example.rs"
+
+[[example]]
+name = "no_consensus_example"
+path = "examples/no_consensus_example.rs"
+
+[[example]]
+name = "simple_majority_example"
+path = "examples/simple_majority_example.rs"
+
+[[example]]
+name = "pbft_baseline_example"
+path = "examples/pbft_baseline_example.rs"
+
+[[example]]
+name = "run_all_comparisons"
+path = "examples/run_all_comparisons.rs"
+
+[[example]]
+name = "comparison_example"
+path = "examples/comparison_example.rs"
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

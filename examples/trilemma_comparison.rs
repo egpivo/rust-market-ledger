@@ -9,6 +9,11 @@ use rust_market_ledger::etl::{Block, MarketData};
 use std::sync::Arc;
 use std::time::Instant;
 
+// Shared metrics utilities
+#[path = "shared/mod.rs"]
+mod metrics;
+use metrics::{MetricsStdDev, calculate_average_metrics, calculate_metrics_std_dev, calculate_runtime_std_dev};
+
 /// Trilemma scores for each consensus algorithm
 struct TrilemmaScores {
     decentralization: f64, // 1-5
@@ -20,18 +25,10 @@ struct TrilemmaScores {
 struct StrategyResult {
     strategy_name: String,
     metrics: ConsensusMetrics,
-    metrics_std_dev: MetricsStdDev, // Standard deviation for statistical credibility
+    metrics_std_dev: MetricsStdDev,
     trilemma: TrilemmaScores,
-    runtime_seconds: f64, // Total runtime for this strategy
-    runtime_std_dev: f64, // Runtime standard deviation
-}
-
-/// Standard deviation metrics for statistical analysis
-struct MetricsStdDev {
-    latency_std_dev: f64,
-    throughput_std_dev: f64,
-    commit_rate_std_dev: f64,
-    error_rate_std_dev: f64,
+    runtime_seconds: f64,
+    runtime_std_dev: f64,
 }
 
 /// Run comprehensive trilemma comparison experiment
@@ -169,7 +166,6 @@ async fn main() {
         println!("Testing {}...", strategy_name);
         
         // Record strategy start time
-        let strategy_start = Instant::now();
         
         // Run multiple rounds and collect metrics (for statistical analysis)
         let mut round_metrics: Vec<ConsensusMetrics> = Vec::new();
@@ -230,93 +226,6 @@ async fn main() {
         total_runtime.as_secs_f64() / 60.0
     );
     println!("{}", "=".repeat(100));
-}
-
-/// Calculate standard deviation for runtime
-fn calculate_runtime_std_dev(runtimes: &[f64]) -> f64 {
-    if runtimes.len() < 2 {
-        return 0.0;
-    }
-    
-    let mean = runtimes.iter().sum::<f64>() / runtimes.len() as f64;
-    let variance = runtimes.iter()
-        .map(|&x| (x - mean).powi(2))
-        .sum::<f64>() / (runtimes.len() - 1) as f64;
-    
-    variance.sqrt()
-}
-
-/// Calculate standard deviation for metrics
-fn calculate_metrics_std_dev(round_metrics: &[ConsensusMetrics], avg_metrics: &ConsensusMetrics) -> MetricsStdDev {
-    if round_metrics.len() < 2 {
-        return MetricsStdDev {
-            latency_std_dev: 0.0,
-            throughput_std_dev: 0.0,
-            commit_rate_std_dev: 0.0,
-            error_rate_std_dev: 0.0,
-        };
-    }
-    
-    let latency_variance = round_metrics.iter()
-        .map(|m| (m.avg_latency_ms - avg_metrics.avg_latency_ms).powi(2))
-        .sum::<f64>() / (round_metrics.len() - 1) as f64;
-    
-    let throughput_variance = round_metrics.iter()
-        .map(|m| (m.throughput_blocks_per_sec - avg_metrics.throughput_blocks_per_sec).powi(2))
-        .sum::<f64>() / (round_metrics.len() - 1) as f64;
-    
-    let commit_rate_variance = round_metrics.iter()
-        .map(|m| (m.commit_rate - avg_metrics.commit_rate).powi(2))
-        .sum::<f64>() / (round_metrics.len() - 1) as f64;
-    
-    let error_rate_variance = round_metrics.iter()
-        .map(|m| (m.error_rate - avg_metrics.error_rate).powi(2))
-        .sum::<f64>() / (round_metrics.len() - 1) as f64;
-    
-    MetricsStdDev {
-        latency_std_dev: latency_variance.sqrt(),
-        throughput_std_dev: throughput_variance.sqrt(),
-        commit_rate_std_dev: commit_rate_variance.sqrt(),
-        error_rate_std_dev: error_rate_variance.sqrt(),
-    }
-}
-
-/// Calculate average metrics across multiple rounds
-fn calculate_average_metrics(round_metrics: &[ConsensusMetrics]) -> ConsensusMetrics {
-    if round_metrics.is_empty() {
-        return ConsensusMetrics {
-            strategy_name: String::new(),
-            total_blocks: 0,
-            committed_blocks: 0,
-            failed_blocks: 0,
-            error_blocks: 0,
-            min_latency_ms: 0,
-            max_latency_ms: 0,
-            avg_latency_ms: 0.0,
-            throughput_blocks_per_sec: 0.0,
-            error_rate: 0.0,
-            commit_rate: 0.0,
-            data_integrity_maintained: true,
-        };
-    }
-    
-    let count = round_metrics.len() as f64;
-    let strategy_name = round_metrics[0].strategy_name.clone();
-    
-    ConsensusMetrics {
-        strategy_name,
-        total_blocks: round_metrics[0].total_blocks,
-        committed_blocks: (round_metrics.iter().map(|m| m.committed_blocks).sum::<usize>() as f64 / count) as usize,
-        failed_blocks: (round_metrics.iter().map(|m| m.failed_blocks).sum::<usize>() as f64 / count) as usize,
-        error_blocks: (round_metrics.iter().map(|m| m.error_blocks).sum::<usize>() as f64 / count) as usize,
-        min_latency_ms: round_metrics.iter().map(|m| m.min_latency_ms).min().unwrap_or(0),
-        max_latency_ms: round_metrics.iter().map(|m| m.max_latency_ms).max().unwrap_or(0),
-        avg_latency_ms: round_metrics.iter().map(|m| m.avg_latency_ms).sum::<f64>() / count,
-        throughput_blocks_per_sec: round_metrics.iter().map(|m| m.throughput_blocks_per_sec).sum::<f64>() / count,
-        error_rate: round_metrics.iter().map(|m| m.error_rate).sum::<f64>() / count,
-        commit_rate: round_metrics.iter().map(|m| m.commit_rate).sum::<f64>() / count,
-        data_integrity_maintained: round_metrics.iter().all(|m| m.data_integrity_maintained),
-    }
 }
 
 /// Get trilemma scores for each consensus algorithm
