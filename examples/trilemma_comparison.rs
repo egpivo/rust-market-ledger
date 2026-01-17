@@ -362,18 +362,43 @@ fn print_trilemma_comparison_table(results: &[StrategyResult], rounds: usize) {
     println!("Degree of Decentralization (DoD) - 5 metrics:");
     println!(
         "{:<20} | {:>18} | {:>18} | {:>18} | {:>18} | {:>18}",
-        "Strategy", "Block Proposal Rand", "Geographic Diversity", "Hash Power Dist", "Token Concentration", "Wealth Distribution"
+        "Strategy",
+        "Block Proposal Rand",
+        "Geographic Diversity",
+        "Hash Power Dist",
+        "Token Concentration",
+        "Wealth Distribution"
     );
     println!("{}", "-".repeat(140));
     for result in results {
         println!(
             "{:<20} | {:>18} | {:>18} | {:>18} | {:>18} | {:>18}",
             result.strategy_name,
-            result.metrics.block_proposal_randomness.map(|v| format!("{:.2}", v)).unwrap_or_else(|| "N/A".to_string()),
-            result.metrics.geographical_diversity.map(|v| format!("{:.2}", v)).unwrap_or_else(|| "N/A".to_string()),
-            result.metrics.hashing_power_distribution.map(|v| format!("{:.2}", v)).unwrap_or_else(|| "N/A".to_string()),
-            result.metrics.token_concentration.map(|v| format!("{:.2}", v)).unwrap_or_else(|| "N/A".to_string()),
-            result.metrics.wealth_distribution.map(|v| format!("{:.2}", v)).unwrap_or_else(|| "N/A".to_string()),
+            result
+                .metrics
+                .block_proposal_randomness
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|| "N/A".to_string()),
+            result
+                .metrics
+                .geographical_diversity
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|| "N/A".to_string()),
+            result
+                .metrics
+                .hashing_power_distribution
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|| "N/A".to_string()),
+            result
+                .metrics
+                .token_concentration
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|| "N/A".to_string()),
+            result
+                .metrics
+                .wealth_distribution
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|| "N/A".to_string()),
         );
     }
     println!();
@@ -403,7 +428,11 @@ fn print_trilemma_comparison_table(results: &[StrategyResult], rounds: usize) {
         println!(
             "{:<20} | {:>15} | {:>20.2} | {:>15.2} | {:>20.2}",
             result.strategy_name,
-            result.metrics.cost_of_attack.map(|v| format!("{:.2}", v)).unwrap_or_else(|| "N/A".to_string()),
+            result
+                .metrics
+                .cost_of_attack
+                .map(|v| format!("{:.2}", v))
+                .unwrap_or_else(|| "N/A".to_string()),
             result.metrics.fault_tolerance,
             result.metrics.reliability,
             result.metrics.stale_block_rate,
