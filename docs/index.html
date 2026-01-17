@@ -342,32 +342,68 @@
                         <tbody>
                             <tr>
                                 <td class="value">1</td>
-                                <td class="value">50,100</td>
+                                <td class="value">50,240</td>
+                                <td>CoinGecko</td>
+                                <td class="value">...</td>
+                            </tr>
+                            <tr>
+                                <td class="value">2</td>
+                                <td class="value">49,890</td>
+                                <td>CoinGecko</td>
+                                <td class="value">...</td>
+                            </tr>
+                            <tr>
+                                <td class="value">3</td>
+                                <td class="value">50,560</td>
+                                <td>CoinGecko</td>
+                                <td class="value">...</td>
+                            </tr>
+                            <tr>
+                                <td class="value">4</td>
+                                <td class="value">51,120</td>
+                                <td>CoinGecko</td>
+                                <td class="value">...</td>
+                            </tr>
+                            <tr>
+                                <td class="value">5</td>
+                                <td class="value">50,680</td>
+                                <td>CoinGecko</td>
+                                <td class="value">...</td>
+                            </tr>
+                            <tr>
+                                <td class="value">6</td>
+                                <td class="value">49,950</td>
+                                <td>CoinGecko</td>
+                                <td class="value">...</td>
+                            </tr>
+                            <tr>
+                                <td class="value">7</td>
+                                <td class="value">50,430</td>
+                                <td>CoinGecko</td>
+                                <td class="value">...</td>
+                            </tr>
+                            <tr>
+                                <td class="value">8</td>
+                                <td class="value">51,290</td>
+                                <td>CoinGecko</td>
+                                <td class="value">...</td>
+                            </tr>
+                            <tr>
+                                <td class="value">9</td>
+                                <td class="value">50,710</td>
                                 <td>CoinGecko</td>
                                 <td class="value">...</td>
                             </tr>
                             <tr>
                                 <td class="value">10</td>
-                                <td class="value">51,000</td>
-                                <td>CoinGecko</td>
-                                <td class="value">...</td>
-                            </tr>
-                            <tr>
-                                <td class="value">50</td>
-                                <td class="value">55,000</td>
-                                <td>CoinGecko</td>
-                                <td class="value">...</td>
-                            </tr>
-                            <tr>
-                                <td class="value">100</td>
-                                <td class="value">60,000</td>
+                                <td class="value">50,180</td>
                                 <td>CoinGecko</td>
                                 <td class="value">...</td>
                             </tr>
                         </tbody>
                     </table>
                     <p style="margin-top: 16px; color: var(--muted); font-size: 0.9rem;">
-                        <strong>Note:</strong> Price pattern: linear increase from 50,000 to 60,000 USD across 100 blocks (simulated for demonstration).
+                        <strong>Note:</strong> Price pattern: simulated fluctuations around 50,000 USD (sample of 10 blocks shown, simulated for demonstration).
                     </p>
                     
                     <h3 style="margin-top: 24px; margin-bottom: 12px;">BTC Price Time Series</h3>
@@ -561,11 +597,10 @@
             const width = canvas.width - 2 * padding;
             const height = canvas.height - 2 * padding;
             
-            // Generate price data: linear increase from 50000 to 60000
-            const prices = [];
-            for (let i = 1; i <= 100; i++) {
-                prices.push(50000 + (i * 100));
-            }
+            // Generate price data: fluctuating around 50,000 USD (10 blocks)
+            const basePrice = 50000;
+            const fluctuation = 1500; // Max fluctuation
+            const prices = [50240, 49890, 50560, 51120, 50680, 49950, 50430, 51290, 50710, 50180];
             
             const minPrice = Math.min(...prices);
             const maxPrice = Math.max(...prices);
@@ -585,6 +620,7 @@
             ctx.lineWidth = 2;
             ctx.beginPath();
             
+            // Draw price line with points
             for (let i = 0; i < prices.length; i++) {
                 const x = padding + (i / (prices.length - 1)) * width;
                 const y = padding + height - ((prices[i] - minPrice) / priceRange) * height;
@@ -594,6 +630,12 @@
                 } else {
                     ctx.lineTo(x, y);
                 }
+                
+                // Draw point markers
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, 2 * Math.PI);
+                ctx.fillStyle = '#2563eb';
+                ctx.fill();
             }
             ctx.stroke();
             
@@ -612,8 +654,16 @@
             
             // Y-axis labels
             ctx.textAlign = 'right';
-            ctx.fillText(minPrice.toLocaleString(), padding - 10, height + padding + 4);
-            ctx.fillText(maxPrice.toLocaleString(), padding - 10, padding + 4);
+            ctx.fillText(Math.floor(minPrice).toLocaleString(), padding - 10, height + padding + 4);
+            ctx.fillText(Math.ceil(maxPrice).toLocaleString(), padding - 10, padding + 4);
+            
+            // X-axis labels (block indices)
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#6b7280';
+            for (let i = 0; i < prices.length; i++) {
+                const x = padding + (i / (prices.length - 1)) * width;
+                ctx.fillText((i + 1).toString(), x, height + padding + 20);
+            }
         }
         
         window.addEventListener('load', () => {
