@@ -290,7 +290,7 @@
                 <h2>Goal</h2>
                 <p class="subtext">Compare consensus algorithms using the same test blocks to understand performance trade-offs and trilemma characteristics.</p>
                 <div class="data-note" style="margin-top: 20px;">
-                    <strong>Experimental Context:</strong> This is a conceptual demonstration using simulated data and simplified consensus implementations. Metric values are illustrative and reflect simulator characteristics rather than production system performance. See "Data & Environment Setup" tab for simulation details.
+                    <strong>Experimental Context:</strong> This is a conceptual demonstration using simulated data and simplified consensus implementations. Metric values are illustrative and reflect simulator characteristics rather than production system performance. The trilemma metrics follow the taxonomy from <a href="https://arxiv.org/abs/2505.03768" target="_blank" rel="noopener noreferrer">Aliyu, Kannengie&szlig;er &amp; Sunyaev (2025)</a>. See "Data & Environment Setup" tab for simulation details.
                 </div>
 
                 <h2 style="margin-top: 32px;">Metric Definitions</h2>
@@ -301,6 +301,7 @@
                         <li><strong>Commit Rate (%):</strong> (Committed blocks / Total blocks) &times; 100</li>
                         <li><strong>Error Rate (%):</strong> (Blocks with errors / Total blocks) &times; 100</li>
                         <li><strong>Trilemma Scores:</strong> Qualitative assessment (1-5 scale) based on algorithm characteristics</li>
+                        <li><strong>Trilemma Metrics (arXiv:2505.03768):</strong> Degree of decentralization (block proposal randomness, geographic diversity, hash power distribution, token concentration, wealth distribution), scalability (availability, confirmation latency, max throughput), and security (cost of attack, fault tolerance, reliability, stale block rate).</li>
                     </ul>
                 </div>
 
@@ -515,7 +516,7 @@
                 </table>
 
                 <h2 style="margin-top: 32px;">Extended Trilemma Metrics (arXiv:2505.03768)</h2>
-                <p class="subtext">15 metrics across three dimensions: Decentralization (5), Scalability (3), Security (4)</p>
+                <p class="subtext">15 metrics across three dimensions: Decentralization (5), Scalability (3), Security (4). Metric taxonomy based on <a href="https://arxiv.org/abs/2505.03768" target="_blank" rel="noopener noreferrer">Aliyu, Kannengie&szlig;er &amp; Sunyaev (2025)</a>.</p>
                 
                 <div class="data-note" style="margin-bottom: 16px;">
                     <strong>Note on DoD Metrics:</strong> Some metrics (Geographic Diversity, Hash Power Distribution, Token Concentration, Wealth Distribution) are marked as N/A because they cannot be accurately measured in a single-machine simulation environment. These metrics would require actual geographic node distribution, proof-of-work hashing power data, or token economics data which are not available in this simulator.
@@ -775,6 +776,7 @@
                     <ul style="margin-left: 20px; line-height: 2;">
                         <li><a href="https://github.com/egpivo/rust-market-ledger/blob/main/README.md" target="_blank" rel="noopener noreferrer">README.md</a> - Project overview and quick start</li>
                         <li><a href="https://github.com/egpivo/rust-market-ledger/blob/main/examples/README.md" target="_blank" rel="noopener noreferrer">examples/README.md</a> - Detailed examples guide</li>
+                        <li><a href="https://arxiv.org/abs/2505.03768" target="_blank" rel="noopener noreferrer">Aliyu, Kannengie&szlig;er &amp; Sunyaev (2025)</a> - Blockchain trilemma measurement survey (metric source)</li>
                     </ul>
                 </div>
 
