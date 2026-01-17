@@ -283,6 +283,7 @@
                 <button class="tab active" id="goalTabButton" role="tab" aria-selected="true" aria-controls="goalTab" onclick="switchTab('goal')">Goal & Metrics</button>
                 <button class="tab" id="setupTabButton" role="tab" aria-selected="false" aria-controls="setupTab" onclick="switchTab('setup')">Data & Environment Setup</button>
                 <button class="tab" id="resultsTabButton" role="tab" aria-selected="false" aria-controls="resultsTab" onclick="switchTab('results')">Results</button>
+                <button class="tab" id="referenceTabButton" role="tab" aria-selected="false" aria-controls="referenceTab" onclick="switchTab('reference')">Reference</button>
             </div>
 
             <div id="goalTab" class="tab-content active" role="tabpanel" aria-labelledby="goalTabButton">
@@ -567,6 +568,66 @@
                     </div>
                 </div>
             </div>
+
+            <div id="referenceTab" class="tab-content" role="tabpanel" aria-labelledby="referenceTabButton">
+                <h2>Codebase & Repository</h2>
+                <div class="card">
+                    <p style="margin-bottom: 16px;">
+                        <strong>GitHub Repository:</strong><br>
+                        <a href="https://github.com/egpivo/rust-market-ledger" target="_blank" rel="noopener noreferrer">https://github.com/egpivo/rust-market-ledger</a>
+                    </p>
+                    <p style="margin-bottom: 16px;">
+                        <strong>Project Structure:</strong>
+                    </p>
+                    <ul style="margin-left: 20px; line-height: 2;">
+                        <li><code>src/etl/</code> - ETL pipeline (extract, transform, load)</li>
+                        <li><code>src/consensus/</code> - Consensus algorithms and comparison framework</li>
+                        <li><code>src/consensus/algorithms/</code> - Individual consensus implementations (PBFT, Gossip, Eventual, Quorum-less, Flexible Paxos)</li>
+                        <li><code>examples/</code> - Example code and experiments</li>
+                        <li><code>examples/shared/</code> - Shared utilities for metrics calculation</li>
+                    </ul>
+                </div>
+
+                <h2 style="margin-top: 32px;">Example Code & Commands</h2>
+                <div class="card">
+                    <h3 style="margin-top: 0;">Trilemma Comparison Experiment</h3>
+                    <p style="margin-bottom: 12px;">Compare all consensus algorithms with performance metrics and trilemma scores:</p>
+                    <div style="background: #1e293b; color: #e2e8f0; padding: 14px; border-radius: 8px; font-family: 'JetBrains Mono', 'Courier New', monospace; font-size: 0.9rem; overflow-x: auto;">
+                        <code style="color: #e2e8f0;">cargo run --example trilemma_comparison</code>
+                    </div>
+                    <p style="margin-top: 12px; margin-bottom: 0; color: var(--muted); font-size: 0.9rem;">
+                        This runs the full comparison experiment shown in the Results tab.
+                    </p>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <h3 style="margin-top: 0;">Teaching Examples</h3>
+                    <p style="margin-bottom: 12px;">Individual consensus algorithm examples:</p>
+                    <ul style="margin-left: 20px; line-height: 2;">
+                        <li><strong>No-Consensus:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">cargo run --example no_consensus_example</code></li>
+                        <li><strong>Simple Majority:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">cargo run --example simple_majority_example</code></li>
+                        <li><strong>PBFT Baseline:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">cargo run --example pbft_baseline_example</code></li>
+                        <li><strong>Run All:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">cargo run --example run_all_comparisons</code></li>
+                    </ul>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <h3 style="margin-top: 0;">Documentation</h3>
+                    <ul style="margin-left: 20px; line-height: 2;">
+                        <li><a href="https://github.com/egpivo/rust-market-ledger/blob/main/README.md" target="_blank" rel="noopener noreferrer">README.md</a> - Project overview and quick start</li>
+                        <li><a href="https://github.com/egpivo/rust-market-ledger/blob/main/examples/README.md" target="_blank" rel="noopener noreferrer">examples/README.md</a> - Detailed examples guide</li>
+                    </ul>
+                </div>
+
+                <h2 style="margin-top: 32px;">Prerequisites</h2>
+                <div class="card">
+                    <ul style="margin-left: 20px; line-height: 2;">
+                        <li><strong>Rust:</strong> 1.70+ (<a href="https://rustup.rs" target="_blank" rel="noopener noreferrer">rustup.rs</a>)</li>
+                        <li><strong>Clone:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">git clone https://github.com/egpivo/rust-market-ledger.git</code></li>
+                        <li><strong>Build:</strong> <code style="background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">cargo build</code></li>
+                    </ul>
+                </div>
+            </div>
         </section>
 
         <footer>
@@ -715,11 +776,16 @@
                 document.getElementById("setupTab").classList.add("active");
                 // Draw chart when setup tab is shown
                 setTimeout(drawPriceChart, 100);
+            } else if (tabName === "results") {
+                const activeTab = document.querySelector(".tab:nth-child(3)");
+                activeTab.classList.add("active");
+                activeTab.setAttribute("aria-selected", "true");
+                document.getElementById("resultsTab").classList.add("active");
             } else {
                 const activeTab = document.querySelector(".tab:last-child");
                 activeTab.classList.add("active");
                 activeTab.setAttribute("aria-selected", "true");
-                document.getElementById("resultsTab").classList.add("active");
+                document.getElementById("referenceTab").classList.add("active");
             }
         }
     </script>
