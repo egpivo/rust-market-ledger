@@ -5,15 +5,11 @@
 //! not production-ready. These implementations use simulated network communication and simplified
 //! state management for comparative analysis and understanding consensus algorithm concepts.
 
-// PBFT implementation (internal)
-mod pbft_impl;
-// PBFT consensus adapter (implements ConsensusAlgorithm trait)
-pub mod pbft;
-
 pub mod eventual;
 pub mod flexible_paxos;
 pub mod gossip;
+pub mod pbft;
 pub mod quorumless;
 
 // Re-export PBFT types for backward compatibility
-pub use pbft_impl::{MessageType, PBFTManager, PBFTMessage};
+pub use pbft::{MessageType, PBFTManager, PBFTMessage};
