@@ -34,3 +34,6 @@ node_*.pid
 .env
 .env.local
 .env.*.local
+
+# Academic papers (use links instead)
+*.pdf
