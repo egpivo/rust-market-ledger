@@ -2,8 +2,6 @@
 
 [![CI](https://github.com/egpivo/rust-market-ledger/actions/workflows/ci.yml/badge.svg)](https://github.com/egpivo/rust-market-ledger/actions/workflows/ci.yml)
 
-**Version**: v0.1.0
-
 A demonstration repository for comparing different distributed consensus algorithms in a market ledger context.
 
 ## Overview
